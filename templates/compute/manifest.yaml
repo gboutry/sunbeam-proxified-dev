@@ -31,19 +31,24 @@ core:
       security_group_rules: True
       # Local or remote access to VMs
       remote_access_location: remote
-    external_network:
-      # CIDR of network to use for external networking
-      cidr: ${compute_network}
-      # IP address of default gateway for external network
-      gateway: ${compute_gateway}
-      # Start of IP allocation range for external network
-      range: ${compute_range}
-      # Network type for access to external network
-      network_type: flat
-      # VLAN ID to use for external network
-      # segmentation_id:
-      # Free network interface that will be configured for external traffic
-      nic: enp6s0
+      physnet: physnet1
+    external-networks:
+      physnet1:
+        # CIDR of network to use for external networking
+        cidr: ${compute_network}
+        # IP address of default gateway for external network
+        gateway: ${compute_gateway}
+        # Start of IP allocation range for external network
+        range: ${compute_range}
+        # Network type for access to external network
+        network_type: flat
+        # VLAN ID to use for external network
+        # segmentation_id:
+        # Free network interface that will be configured for external traffic
+        nics:
+%{ for hostname, osd_list in osds}
+          ${hostname}: enp6s0
+%{ endfor }
     # MicroCeph config
     endpoints:
       ingress-internal:
@@ -112,6 +117,14 @@ core:
         channel: latest/edge
         config:
           snap-channel: squid/edge
+      microovn:
+        channel: 24.03/edge
+      openstack-network-agents:
+        channel: 2024.1/edge
+        config:
+          snap-channel: 2024.1/edge
+      sunbeam-ovn-proxy:
+        channel: 2024.1/edge
 features:
   caas:
     software:
