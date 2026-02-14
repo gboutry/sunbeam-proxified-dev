@@ -13,3 +13,31 @@ output "fqdn" {
 output "osds" {
   value = lxd_volume.osd[*].name
 }
+
+output "hostname" {
+  value = var.hostname
+}
+
+output "cores" {
+  value = var.cores
+}
+
+output "memory" {
+  value = var.memory
+}
+
+output "root_disk_size" {
+  value = var.root_disk_size
+}
+
+output "nb_osd" {
+  value = var.nb_osd
+}
+
+output "osd_disk_size" {
+  value = var.osd_disk_size
+}
+
+output "compute_nets" {
+  value = var.compute_nets
+}

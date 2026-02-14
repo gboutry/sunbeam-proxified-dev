@@ -33,22 +33,26 @@ core:
       remote_access_location: remote
       physnet: physnet1
     external-networks:
-      physnet1:
-        # CIDR of network to use for external networking
-        cidr: ${compute_network}
+%{ for physnet_name, net_config in external_networks ~}
+      ${physnet_name}:
+        # CIDR of network to use for external networking (${net_config.network_name})
+        cidr: ${net_config.cidr}
         # IP address of default gateway for external network
-        gateway: ${compute_gateway}
+        gateway: ${net_config.gateway}
         # Start of IP allocation range for external network
-        range: ${compute_range}
+        range: ${net_config.range}
         # Network type for access to external network
         network_type: flat
         # VLAN ID to use for external network
         # segmentation_id:
         # Free network interface that will be configured for external traffic
+%{ if length(net_config.nics) > 0 ~}
         nics:
-%{ for hostname, osd_list in osds}
-          ${hostname}: enp6s0
-%{ endfor }
+%{ for hostname, nic in net_config.nics ~}
+          ${hostname}: ${nic}
+%{ endfor ~}
+%{ endif ~}
+%{ endfor ~}
     # MicroCeph config
     endpoints:
       ingress-internal:

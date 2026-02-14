@@ -8,9 +8,13 @@ variable "proxy_ip" {}
 variable "no_proxy" {}
 variable "cores" {}
 variable "memory" {}
-variable "use_proxy" {
-  type = bool
-}
+variable "root_disk_size" {}
 variable "nb_osd" {
   default = 3
+}
+variable "osd_disk_size" {
+  default = "50GiB"
+}
+variable "use_proxy" {
+  type = bool
 }

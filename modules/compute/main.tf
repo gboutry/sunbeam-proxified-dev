@@ -18,7 +18,7 @@ resource "lxd_volume" "osd" {
   type         = "custom"
   content_type = "block"
   config = {
-    size = "50GiB"
+    size = var.osd_disk_size
   }
 }
 
@@ -97,7 +97,7 @@ resource "lxd_instance" "compute" {
     properties = {
       path = "/"
       pool = "default"
-      size = "75GiB"
+      size = var.root_disk_size
     }
   }
 
