@@ -1,6 +1,6 @@
-output "compute_nodes" {
-  description = "Information about all compute nodes including their network configuration"
-  value = [
+locals {
+  # Compute nodes data extracted from module output for reuse
+  computed_nodes = [
     for i, vm in module.compute : {
       name            = vm.name
       fqdn            = vm.fqdn
@@ -11,11 +11,42 @@ output "compute_nodes" {
       root_disk_size  = vm.root_disk_size
       nb_osd          = vm.nb_osd
       osd_disk_size   = vm.osd_disk_size
-      management_net  = "restrictedbr0"  # Always connected
-      compute_nets    = vm.compute_nets  # Additional networks
+      management_net  = "restrictedbr0"
+      compute_nets    = vm.compute_nets
       osd_devices     = vm.osds
     }
   ]
+}
+
+output "infrastructure" {
+  description = "Infrastructure in YAML format"
+  value       = <<-EOT
+machines:
+%{ for vm in local.computed_nodes ~}
+  - hostname: ${vm.hostname}
+    ip: ${vm.ip}
+    osd-devices: ${join(",", vm.osd_devices)}
+    external-networks:
+      external: ${vm.management_net}
+%{ endfor ~}
+EOT
+  sensitive = false
+}
+
+output "ssh_public_key" {
+  description = "SSH public key for access"
+  value       = trimspace(tls_private_key.global.public_key_openssh)
+}
+
+output "ssh_private_key" {
+  description = "SSH private key for access"
+  value       = trimspace(tls_private_key.global.private_key_pem)
+  sensitive   = true
+}
+
+output "compute_nodes" {
+  description = "Information about all compute nodes including their network configuration"
+  value       = local.computed_nodes
 }
 
 output "network_topology" {

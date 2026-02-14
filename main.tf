@@ -12,14 +12,48 @@ terraform {
       source  = "hashicorp/null"
       version = ">=3.2.0"
     }
+    tls = {
+      source  = "hashicorp/tls"
+      version = ">=4.0.0"
+    }
   }
 }
 
 provider "cloudinit" {}
 provider "null" {}
+provider "tls" {}
 
 provider "lxd" {
   generate_client_certificates = true
   accept_remote_certificate    = true
+}
+
+resource "tls_private_key" "global" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+
+resource "local_file" "ssh_private_key" {
+  content  = tls_private_key.global.private_key_pem
+  filename = "ssh_private_key"
+}
+
+resource "local_file" "ssh_public_key" {
+  content  = tls_private_key.global.public_key_openssh
+  filename = "ssh_public_key.pub"
+}
+
+resource "local_file" "testbed_yaml" {
+  content  = <<-EOT
+machines:
+%{ for vm in local.computed_nodes ~}
+  - hostname: ${vm.hostname}
+    ip: ${vm.ip}
+    osd-devices: ${join(",", vm.osd_devices)}
+    external-networks:
+      external: ${vm.management_net}
+%{ endfor ~}
+EOT
+  filename = "testbed.yaml"
 }
 
