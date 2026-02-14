@@ -26,6 +26,11 @@ provider "tls" {}
 provider "lxd" {
   generate_client_certificates = true
   accept_remote_certificate    = true
+  remote {
+    name    = "10.206.53.1"
+    address = "10.206.53.1"
+    default = true
+  }
 }
 
 resource "tls_private_key" "global" {
@@ -48,12 +53,25 @@ resource "local_file" "testbed_yaml" {
 machines:
 %{ for vm in local.computed_nodes ~}
   - hostname: ${vm.hostname}
-    ip: ${vm.ip}
     osd-devices: ${join(",", vm.osd_devices)}
     external-networks:
       external: ${vm.management_net}
 %{ endfor ~}
 EOT
   filename = "testbed.yaml"
+}
+
+resource "local_file" "testbed_yaml_with_ip" {
+  content  = <<-EOT
+machines:
+%{ for vm in local.computed_nodes ~}
+  - hostname: ${vm.hostname}
+    ip: ${vm.ip}
+    osd-devices: ${join(",", vm.osd_devices)}
+    external-networks:
+      external: ${vm.management_net}
+%{ endfor ~}
+EOT
+  filename = "testbed_with_ip.yaml"
 }
 
