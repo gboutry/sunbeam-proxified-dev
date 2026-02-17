@@ -18,20 +18,6 @@ locals {
   ]
 }
 
-output "infrastructure" {
-  description = "Infrastructure in YAML format"
-  value       = <<-EOT
-machines:
-%{ for vm in local.computed_nodes ~}
-  - hostname: ${vm.hostname}
-    osd-devices: ${join(",", vm.osd_devices)}
-    external-networks:
-      external: ${vm.management_net}
-%{ endfor ~}
-EOT
-  sensitive = false
-}
-
 output "infrastructure_with_ip" {
   description = "Infrastructure in YAML format with IP (for testbed use)"
   value       = <<-EOT
