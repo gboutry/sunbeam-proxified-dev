@@ -4,7 +4,6 @@ Find the largest unused disk on a physical machine.
 Useful for creating an LXD storage pool.
 """
 
-import os
 import subprocess
 import re
 from pathlib import Path
@@ -21,7 +20,7 @@ def get_block_devices():
     for device in sys_block.iterdir():
         if device.name.startswith(("sd", "nvme", "vd", "hd", "sr")):
             # Skip partitions (e.g., sda1) - only want whole disks
-            if not re.match(r'.*\d+$', device.name):
+            if not re.match(r".*\d+$", device.name):
                 devices.append(device.name)
 
     return sorted(devices)
@@ -44,10 +43,7 @@ def is_disk_used(disk_name):
     # Check 2: Does the disk have a filesystem (blkid)?
     try:
         result = subprocess.run(
-            ["blkid", "-o", "device"],
-            capture_output=True,
-            text=True,
-            check=False
+            ["blkid", "-o", "device"], capture_output=True, text=True, check=False
         )
         if result.returncode == 0:
             mounted_devices = result.stdout.strip().split("\n")
@@ -62,7 +58,7 @@ def is_disk_used(disk_name):
             ["pvs", "--noheadings", "-o", "pv_name"],
             capture_output=True,
             text=True,
-            check=False
+            check=False,
         )
         if result.returncode == 0:
             pvs = result.stdout.strip().split("\n")
@@ -176,7 +172,7 @@ def find_largest_unused_disk():
         "path": f"/dev/{largest_disk}",
         "name": largest_disk,
         "size": largest_size,
-        "size_human": format_size(largest_size)
+        "size_human": format_size(largest_size),
     }
 
 
@@ -184,7 +180,7 @@ def main():
     result = find_largest_unused_disk()
 
     if result:
-        print(f"\nResult:")
+        print("\nResult:")
         print(f"  Device: {result['path']}")
         print(f"  Size: {result['size_human']}")
         return result

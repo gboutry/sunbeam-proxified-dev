@@ -1,5 +1,5 @@
 variable "nb_vm" {
-  default = 1
+  default = 3
 }
 
 variable "use_proxy" {
@@ -21,7 +21,7 @@ variable "vm_config" {
   default = {
     cores          = "6"
     memory         = "18GiB"
-    root_disk_size = "75GiB"
+    root_disk_size = "120GiB"
     nb_osd         = 3
     osd_disk_size  = "50GiB"
     compute_nets   = ["computebr10"]

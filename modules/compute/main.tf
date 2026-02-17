@@ -118,7 +118,7 @@ resource "lxd_instance" "compute" {
   }
 
   provisioner "local-exec" {
-    command     = "sleep 15 && lxc exec ${self.name} -- cloud-init status --wait"
+    command     = "sleep 15 && lxc exec ${self.name} -- cloud-init status --wait >/dev/null"
     interpreter = ["bash", "-c"]
   }
 }

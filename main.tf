@@ -38,35 +38,23 @@ resource "local_file" "ssh_private_key" {
   filename = "ssh_private_key"
 }
 
-resource "local_file" "ssh_public_key" {
-  content  = tls_private_key.global.public_key_openssh
-  filename = "ssh_public_key.pub"
+resource "local_sensitive_file" "ssh_public_key" {
+  content              = tls_private_key.global.public_key_openssh
+  filename             = "ssh_public_key.pub"
+  file_permission = "0600"
 }
 
 resource "local_file" "testbed_yaml" {
   content  = <<-EOT
 machines:
-%{ for vm in local.computed_nodes ~}
+%{for vm in local.computed_nodes~}
   - hostname: ${vm.hostname}
+    ip: ${vm.ip}
+    fqdn: ${vm.fqdn}
     osd-devices: ${join(",", vm.osd_devices)}
     external-networks:
       external: ${vm.management_net}
-%{ endfor ~}
+%{endfor~}
 EOT
   filename = "testbed.yaml"
 }
-
-resource "local_file" "testbed_yaml_with_ip" {
-  content  = <<-EOT
-machines:
-%{ for vm in local.computed_nodes ~}
-  - hostname: ${vm.hostname}
-    ip: ${vm.ip}
-    osd-devices: ${join(",", vm.osd_devices)}
-    external-networks:
-      external: ${vm.management_net}
-%{ endfor ~}
-EOT
-  filename = "testbed_with_ip.yaml"
-}
-

@@ -18,13 +18,14 @@ locals {
   ]
 }
 
-output "infrastructure_with_ip" {
+output "infrastructure" {
   description = "Infrastructure in YAML format with IP (for testbed use)"
   value       = <<-EOT
 machines:
 %{ for vm in local.computed_nodes ~}
   - hostname: ${vm.hostname}
     ip: ${vm.ip}
+    fqdn: ${vm.fqdn}
     osd-devices: ${join(",", vm.osd_devices)}
     external-networks:
       external: ${vm.management_net}
