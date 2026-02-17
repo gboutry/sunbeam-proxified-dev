@@ -43,6 +43,7 @@ module "compute" {
   proxy_ip          = local.proxy_ip
   no_proxy          = local.no_proxy
   use_proxy         = var.use_proxy
+  ssh_public_key    = trimspace(tls_private_key.global.public_key_openssh)
 }
 
 resource "lxd_instance_file" "manifest" {

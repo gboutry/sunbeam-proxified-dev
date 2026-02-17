@@ -19,8 +19,8 @@ variable "vm_config" {
     compute_nets   = list(string)
   })
   default = {
-    cores          = "4"
-    memory         = "10GiB"
+    cores          = "6"
+    memory         = "18GiB"
     root_disk_size = "75GiB"
     nb_osd         = 3
     osd_disk_size  = "50GiB"

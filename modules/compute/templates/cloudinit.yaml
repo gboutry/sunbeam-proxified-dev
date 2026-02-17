@@ -14,5 +14,5 @@ users:
     shell: /bin/bash
     groups: [sudo]
     sudo: ALL=(ALL) NOPASSWD:ALL
-    ssh_import_id:
-      - lp:gboutry
+    ssh_authorized_keys:
+      - ${ssh_public_key}

@@ -39,10 +39,12 @@ data "cloudinit_config" "cloudinit-compute" {
       proxy_url         = var.proxy_url,
       no_proxy          = var.no_proxy,
       management_domain = var.management_domain,
+      ssh_public_key    = var.ssh_public_key,
       }) : templatefile("${path.module}/templates/cloudinit.yaml", {
       hostname          = var.hostname,
       fqdn              = local.fqdn,
       management_domain = var.management_domain,
+      ssh_public_key    = var.ssh_public_key,
     })
   }
 }

@@ -18,3 +18,7 @@ variable "osd_disk_size" {
 variable "use_proxy" {
   type = bool
 }
+variable "ssh_public_key" {
+  description = "SSH public key to authorize for the ubuntu user"
+  type        = string
+}
