@@ -118,17 +118,15 @@ core:
       sunbeam-machine:
         channel: 2024.1/edge
       microceph:
-        channel: latest/edge
+        channel: squid/candidate
         config:
-          snap-channel: squid/edge
+          snap-channel: squid/candidate
       microovn:
         channel: 24.03/edge
       openstack-network-agents:
         channel: 2024.1/edge
         config:
           snap-channel: 2024.1/edge
-      sunbeam-ovn-proxy:
-        channel: 2024.1/edge
 features:
   caas:
     software:

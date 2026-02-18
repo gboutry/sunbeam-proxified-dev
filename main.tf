@@ -46,6 +46,11 @@ resource "local_sensitive_file" "ssh_public_key" {
 
 resource "local_file" "testbed_yaml" {
   content  = <<-EOT
+deployment:
+  provider: manual
+  channel: 2024.1/edge
+  topology: multi-node
+  manifest: /home/ubuntu/manifest.yaml
 machines:
 %{for vm in local.computed_nodes~}
   - hostname: ${vm.hostname}

@@ -21,6 +21,11 @@ locals {
 output "infrastructure" {
   description = "Infrastructure in YAML format with IP (for testbed use)"
   value       = <<-EOT
+deployment:
+  provider: manual
+  channel: 2024.1/edge
+  topology: multi-node
+  manifest: /home/ubuntu/manifest.yaml
 machines:
 %{for vm in local.computed_nodes~}
   - hostname: ${vm.hostname}
@@ -28,7 +33,7 @@ machines:
     fqdn: ${vm.fqdn}
     osd-devices: ${join(",", vm.osd_devices)}
     external-networks:
-      external: ${vm.management_net}
+      external: enp6s0
 %{endfor~}
 EOT
   sensitive   = false

@@ -146,11 +146,6 @@ run_as_lxd_group terraform init -input=false
 log "Running terraform apply (forwarding script arguments)"
 run_as_lxd_group terraform apply -input=false "$@"
 
-if [[ ! -s "$SCRIPT_DIR/testbed.yaml" ]]; then
-    log "Generating testbed.yaml from Terraform output"
-    run_as_lxd_group terraform output -raw infrastructure > "$SCRIPT_DIR/testbed.yaml"
-fi
-
 [[ -s "$SCRIPT_DIR/testbed.yaml" ]] || fail "testbed.yaml was not generated"
 
 log "Bootstrap complete"
