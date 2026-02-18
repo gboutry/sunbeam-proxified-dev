@@ -34,14 +34,14 @@ resource "tls_private_key" "global" {
 }
 
 resource "local_file" "ssh_private_key" {
-  content  = tls_private_key.global.private_key_pem
-  filename = "ssh_private_key"
+  content         = tls_private_key.global.private_key_pem
+  filename        = "ssh_private_key"
+  file_permission = "0600"
 }
 
 resource "local_sensitive_file" "ssh_public_key" {
-  content              = tls_private_key.global.public_key_openssh
-  filename             = "ssh_public_key.pub"
-  file_permission = "0600"
+  content  = tls_private_key.global.public_key_openssh
+  filename = "ssh_public_key.pub"
 }
 
 resource "local_file" "testbed_yaml" {

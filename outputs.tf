@@ -2,18 +2,18 @@ locals {
   # Compute nodes data extracted from module output for reuse
   computed_nodes = [
     for i, vm in module.compute : {
-      name            = vm.name
-      fqdn            = vm.fqdn
-      hostname        = vm.hostname
-      ip              = vm.ip
-      cores           = vm.cores
-      memory          = vm.memory
-      root_disk_size  = vm.root_disk_size
-      nb_osd          = vm.nb_osd
-      osd_disk_size   = vm.osd_disk_size
-      management_net  = "restrictedbr0"
-      compute_nets    = vm.compute_nets
-      osd_devices     = vm.osds
+      name           = vm.name
+      fqdn           = vm.fqdn
+      hostname       = vm.hostname
+      ip             = vm.ip
+      cores          = vm.cores
+      memory         = vm.memory
+      root_disk_size = vm.root_disk_size
+      nb_osd         = vm.nb_osd
+      osd_disk_size  = vm.osd_disk_size
+      management_net = "restrictedbr0"
+      compute_nets   = vm.compute_nets
+      osd_devices    = vm.osds
     }
   ]
 }
@@ -22,16 +22,16 @@ output "infrastructure" {
   description = "Infrastructure in YAML format with IP (for testbed use)"
   value       = <<-EOT
 machines:
-%{ for vm in local.computed_nodes ~}
+%{for vm in local.computed_nodes~}
   - hostname: ${vm.hostname}
     ip: ${vm.ip}
     fqdn: ${vm.fqdn}
     osd-devices: ${join(",", vm.osd_devices)}
     external-networks:
       external: ${vm.management_net}
-%{ endfor ~}
+%{endfor~}
 EOT
-  sensitive = false
+  sensitive   = false
 }
 
 output "ssh_public_key" {

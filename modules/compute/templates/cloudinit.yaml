@@ -2,7 +2,7 @@
 hostname: ${hostname}
 fqdn: ${fqdn}
 prefer_fqdn_over_hostname: false
-byobu_by_default: enable-system
+# byobu_by_default: enable-system
 packages:
   - openssh-server
   - snapd

@@ -30,7 +30,7 @@ variable "vm_config_override" {
     # vm0: Management-only node (no compute networks)
     # Perfect for control plane or storage-only nodes
     vm0 = {
-      compute_nets = []  # Only connected to restrictedbr0 (management)
+      compute_nets = [] # Only connected to restrictedbr0 (management)
     }
 
     # vm1: Single compute network
@@ -41,7 +41,7 @@ variable "vm_config_override" {
       root_disk_size = "75GiB"
       nb_osd         = 3
       osd_disk_size  = "50GiB"
-      compute_nets   = ["computebr10"]  # Connected to restrictedbr0 + computebr10
+      compute_nets   = ["computebr10"] # Connected to restrictedbr0 + computebr10
     }
 
     # vm2: Multiple compute networks
@@ -52,7 +52,7 @@ variable "vm_config_override" {
       root_disk_size = "75GiB"
       nb_osd         = 3
       osd_disk_size  = "50GiB"
-      compute_nets   = ["computebr10", "computebr20", "computebr30"]  # All compute networks
+      compute_nets   = ["computebr10", "computebr20", "computebr30"] # All compute networks
     }
   }
 }

@@ -68,8 +68,8 @@ variable "vm_config" {
 }
 
 module "compute" {
-  source   = "./modules/compute"
-  count    = var.nb_vm
+  source = "./modules/compute"
+  count  = var.nb_vm
 
   cores          = lookup(var.vm_config["vm${count.index}"], "cores", count.index == 0 ? "6" : "4")
   memory         = lookup(var.vm_config["vm${count.index}"], "memory", count.index == 0 ? "20 GiB" : "10 GiB")
@@ -77,29 +77,29 @@ module "compute" {
   nb_osd         = lookup(var.vm_config["vm${count.index}"], "nb_osd", 3)
   osd_disk_size  = lookup(var.vm_config["vm${count.index}"], "osd_disk_size", "50 GiB")
 
-  hostname        = "bm${count.index}"
+  hostname          = "bm${count.index}"
   management_domain = "example.com"
-  management_net  = "restricted"
-  management_dns  = "10.101.0.1"
-  compute_nets    = lookup(var.vm_config["vm${count.index}"], "compute_nets", [])
-  proxy_url       = "http://10.101.0.2:3128"
-  proxy_ip        = "10.101.0.2"
-  no_proxy        = "localhost,127.0.0.1"
-  use_proxy       = var.use_proxy
+  management_net    = "restricted"
+  management_dns    = "10.101.0.1"
+  compute_nets      = lookup(var.vm_config["vm${count.index}"], "compute_nets", [])
+  proxy_url         = "http://10.101.0.2:3128"
+  proxy_ip          = "10.101.0.2"
+  no_proxy          = "localhost,127.0.0.1"
+  use_proxy         = var.use_proxy
 }
 
 output "vm_configs" {
   value = [
     for i, vm in module.compute : {
-      name            = vm.name
-      fqdn            = vm.fqdn
-      hostname        = vm.hostname
-      cores           = vm.cores
-      memory          = vm.memory
-      root_disk_size  = vm.root_disk_size
-      nb_osd          = vm.nb_osd
-      osd_disk_size   = vm.osd_disk_size
-      compute_nets    = vm.compute_nets
+      name           = vm.name
+      fqdn           = vm.fqdn
+      hostname       = vm.hostname
+      cores          = vm.cores
+      memory         = vm.memory
+      root_disk_size = vm.root_disk_size
+      nb_osd         = vm.nb_osd
+      osd_disk_size  = vm.osd_disk_size
+      compute_nets   = vm.compute_nets
     }
   ]
 }

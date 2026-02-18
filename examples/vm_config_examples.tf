@@ -99,18 +99,18 @@ vm_config_no_osd = {
 # Example 7: Configuration specifying network attachments
 vm_config_networks = {
   vm0 = {
-    cores          = "8"
-    memory         = "32GiB"
-    compute_nets   = ["compute_public"]
+    cores        = "8"
+    memory       = "32GiB"
+    compute_nets = ["compute_public"]
   }
   vm1 = {
-    cores          = "8"
-    memory         = "32GiB"
-    compute_nets   = ["compute_private"]
+    cores        = "8"
+    memory       = "32GiB"
+    compute_nets = ["compute_private"]
   }
   vm2 = {
-    cores          = "4"
-    memory         = "16GiB"
-    compute_nets   = ["compute_public", "compute_private"]
+    cores        = "4"
+    memory       = "16GiB"
+    compute_nets = ["compute_public", "compute_private"]
   }
 }
