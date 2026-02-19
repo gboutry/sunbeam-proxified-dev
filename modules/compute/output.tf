@@ -30,6 +30,10 @@ output "root_disk_size" {
   value = var.root_disk_size
 }
 
+output "roles" {
+  value = var.roles
+}
+
 output "nb_osd" {
   value = var.nb_osd
 }

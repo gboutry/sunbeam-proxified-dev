@@ -9,6 +9,7 @@ variable "no_proxy" {}
 variable "cores" {}
 variable "memory" {}
 variable "root_disk_size" {}
+variable "roles" { }
 variable "nb_osd" {
   default = 3
 }

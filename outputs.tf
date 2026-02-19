@@ -14,29 +14,9 @@ locals {
       management_net = "restrictedbr0"
       compute_nets   = vm.compute_nets
       osd_devices    = vm.osds
+      roles          = vm.roles
     }
   ]
-}
-
-output "infrastructure" {
-  description = "Infrastructure in YAML format with IP (for testbed use)"
-  value       = <<-EOT
-deployment:
-  provider: manual
-  channel: 2024.1/edge
-  topology: multi-node
-  manifest: /home/ubuntu/manifest.yaml
-machines:
-%{for vm in local.computed_nodes~}
-  - hostname: ${vm.hostname}
-    ip: ${vm.ip}
-    fqdn: ${vm.fqdn}
-    osd-devices: ${join(",", vm.osd_devices)}
-    external-networks:
-      external: enp6s0
-%{endfor~}
-EOT
-  sensitive   = false
 }
 
 output "ssh_public_key" {

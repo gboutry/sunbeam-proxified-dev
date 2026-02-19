@@ -33,13 +33,13 @@ resource "tls_private_key" "global" {
   rsa_bits  = 4096
 }
 
-resource "local_file" "ssh_private_key" {
+resource "local_sensitive_file" "ssh_private_key" {
   content         = tls_private_key.global.private_key_pem
   filename        = "ssh_private_key"
   file_permission = "0600"
 }
 
-resource "local_sensitive_file" "ssh_public_key" {
+resource "local_file" "ssh_public_key" {
   content  = tls_private_key.global.public_key_openssh
   filename = "ssh_public_key.pub"
 }
@@ -57,9 +57,14 @@ machines:
     ip: ${vm.ip}
     fqdn: ${vm.fqdn}
     osd-devices: ${join(",", vm.osd_devices)}
+    roles: ${jsonencode(vm.roles)}
     external-networks:
       external: ${vm.management_net}
 %{endfor~}
+ssh:
+  user: ubuntu
+  private_key: ${abspath(local_sensitive_file.ssh_private_key.filename)}
+  public_key: ${abspath(local_file.ssh_public_key.filename)}
 EOT
   filename = "testbed.yaml"
 }

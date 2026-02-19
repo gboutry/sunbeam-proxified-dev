@@ -17,6 +17,7 @@ variable "vm_config" {
     nb_osd         = number
     osd_disk_size  = string
     compute_nets   = list(string)
+    roles          = list(string)
   })
   default = {
     cores          = "6"
@@ -25,6 +26,7 @@ variable "vm_config" {
     nb_osd         = 3
     osd_disk_size  = "50GiB"
     compute_nets   = ["computebr10"]
+    roles          = ["control", "compute", "storage"]
   }
 }
 
@@ -37,6 +39,7 @@ variable "vm_config_override" {
     nb_osd         = optional(number)
     osd_disk_size  = optional(string)
     compute_nets   = optional(list(string))
+    roles          = optional(list(string))
   }))
   default = {}
 }

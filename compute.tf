@@ -34,6 +34,7 @@ module "compute" {
   nb_osd         = try(var.vm_config_override["vm${count.index}"].nb_osd, var.vm_config.nb_osd)
   osd_disk_size  = try(var.vm_config_override["vm${count.index}"].osd_disk_size, var.vm_config.osd_disk_size)
   compute_nets   = try(var.vm_config_override["vm${count.index}"].compute_nets, var.vm_config.compute_nets)
+  roles          = try(var.vm_config_override["vm${count.index}"].roles, var.vm_config.roles)
 
   hostname          = "bm${count.index}"
   management_domain = local.restricted_domain
