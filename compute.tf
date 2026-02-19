@@ -23,7 +23,7 @@ locals {
 }
 
 module "compute" {
-  depends_on = [null_resource.proxy, lxd_instance.proxy]
+  depends_on = [null_resource.proxy, lxd_instance.proxy, lxd_network.restricted, lxd_network.computes]
   source     = "./modules/compute"
   count      = var.nb_vm
 
