@@ -144,7 +144,7 @@ log "Running terraform init"
 run_as_lxd_group terraform init -input=false
 
 log "Running terraform apply (forwarding script arguments)"
-run_as_lxd_group terraform apply -input=false "$@"
+run_as_lxd_group terraform apply -input=false -auto-approve "$@"
 
 [[ -s "$SCRIPT_DIR/testbed.yaml" ]] || fail "testbed.yaml was not generated"
 
