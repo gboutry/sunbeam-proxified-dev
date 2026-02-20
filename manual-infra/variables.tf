@@ -45,8 +45,3 @@ variable "vm_config_override" {
   }))
   default = {}
 }
-
-variable "lxd_host_address" {
-  description = "Address of the LXD host server"
-  type        = string
-}

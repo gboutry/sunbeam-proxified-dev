@@ -26,11 +26,6 @@ provider "tls" {}
 provider "lxd" {
   generate_client_certificates = true
   accept_remote_certificate    = true
-  remote {
-    name    = "lxd_remote"
-    default = true
-    address = var.lxd_host_address
-  }
 }
 
 resource "tls_private_key" "global" {
