@@ -3,6 +3,11 @@ variable "management_domain" {}
 variable "management_net" {}
 variable "management_dns" {}
 variable "compute_nets" {}
+variable "isolation_nets" {
+  description = "Additional NICs for traffic isolation (e.g. MAAS spaces for internal/data/storage). Attached after compute_nets; MAAS configures IPs on these post-enrollment."
+  type        = list(string)
+  default     = []
+}
 variable "proxy_url" {}
 variable "proxy_ip" {}
 variable "no_proxy" {}

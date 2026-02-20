@@ -66,9 +66,11 @@ resource "lxd_instance" "compute" {
       proxy_ip       = var.proxy_ip
       nameservers    = jsonencode([var.management_dns])
       search_domains = jsonencode([var.management_domain])
+      nb_extra_nics  = length(var.compute_nets) + length(var.isolation_nets)
       }) : templatefile("${path.module}/templates/network.yaml", {
       nameservers    = jsonencode([var.management_dns])
       search_domains = jsonencode([var.management_domain])
+      nb_extra_nics  = length(var.compute_nets) + length(var.isolation_nets)
     })
   }
 
@@ -88,6 +90,18 @@ resource "lxd_instance" "compute" {
       type = "nic"
       properties = {
         name    = "eth${index(var.compute_nets, device.value) + 1}"
+        network = device.value
+      }
+    }
+  }
+
+  dynamic "device" {
+    for_each = var.isolation_nets
+    content {
+      name = "eth${length(var.compute_nets) + index(var.isolation_nets, device.value) + 1}"
+      type = "nic"
+      properties = {
+        name    = "eth${length(var.compute_nets) + index(var.isolation_nets, device.value) + 1}"
         network = device.value
       }
     }

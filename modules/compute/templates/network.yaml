@@ -6,12 +6,8 @@ ethernets:
     nameservers:
       addresses: ${nameservers}
       search: ${search_domains}
-  eth1:
-    match: { name: enp6* }
+%{ for i in range(nb_extra_nics) ~}
+  eth${i + 1}:
+    match: { name: enp${i + 6}* }
     dhcp4: false
-  eth2:
-    match: { name: enp7* }
-    dhcp4: false
-  eth3:
-    match: { name: enp8* }
-    dhcp4: false
+%{ endfor ~}

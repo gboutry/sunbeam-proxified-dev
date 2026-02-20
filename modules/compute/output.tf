@@ -45,3 +45,7 @@ output "osd_disk_size" {
 output "compute_nets" {
   value = var.compute_nets
 }
+
+output "isolation_nets" {
+  value = var.isolation_nets
+}
