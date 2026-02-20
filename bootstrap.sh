@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 #
 # Usage:
-#   ./bootstrap.sh [maas] [extra terraform args...]
+#   ./bootstrap.sh [--maas] [extra terraform args...]
 #
-# Without 'maas': deploys manual-infra (LXD-only, no MAAS).
-# With    'maas': installs and configures MAAS + LXD, then deploys maas-infra.
+# Without '--maas': deploys manual-infra (LXD-only, no MAAS).
+# With    '--maas': installs and configures MAAS + LXD, then deploys maas-infra.
 #
 # The MAAS mode runs terraform in two phases:
 #   Phase 1  — creates LXD bridges and registers the LXD VM host in MAAS.
@@ -79,47 +79,27 @@ find_largest_disk() {
 # LXD initialisation preseeds
 # ---------------------------------------------------------------------------
 
-# Manual mode: lxdbr0 with auto CIDR (Terraform manages extra networks).
 lxd_init() {
     local disk="$1"
-    cat <<EOF | run_as_lxd_group lxd init --preseed >/dev/null
-networks:
-- config:
-    ipv4.address: auto
-    ipv4.nat: "true"
-    ipv6.address: none
-  name: lxdbr0
-  project: default
-storage_pools:
-- name: default
-  driver: zfs
-  config:
-    source: ${disk}
-profiles:
-- devices:
-    eth0:
-      name: eth0
-      network: lxdbr0
-      type: nic
-    root:
-      path: /
-      pool: default
-      type: disk
-  name: default
-EOF
-}
+    local mode="$2"
+    local network_name="lxdbr0"
+    local network_config="    ipv4.address: auto
+    ipv4.nat: \"true\"
+    ipv6.address: none"
 
-# MAAS mode: 'mgmt' bridge with static CIDR, DHCP disabled (MAAS owns DHCP).
-lxd_init_maas() {
-    local disk="$1"
+    if [[ "$mode" == "maas" ]]; then
+        network_name="mgmt"
+        network_config="    ipv4.address: 10.10.10.1/24
+    ipv4.nat: \"true\"
+    ipv4.dhcp: \"false\"
+    ipv6.address: none"
+    fi
+
     cat <<EOF | run_as_lxd_group lxd init --preseed >/dev/null
 networks:
 - config:
-    ipv4.address: 10.10.10.1/24
-    ipv4.nat: "true"
-    ipv4.dhcp: "false"
-    ipv6.address: none
-  name: mgmt
+${network_config}
+  name: ${network_name}
   project: default
 storage_pools:
 - name: default
@@ -130,7 +110,7 @@ profiles:
 - devices:
     eth0:
       name: eth0
-      network: mgmt
+      network: ${network_name}
       type: nic
     root:
       path: /
@@ -182,8 +162,14 @@ bootstrap_maas() {
     sleep 60
 
     log "Selecting Ubuntu 24.04 LTS (Noble) for download"
-    maas deployprofile boot-source-selections create 1 \
-        os="ubuntu" release="noble" arches="amd64" subarches="*" labels="*"
+    if ! output=$(maas deployprofile boot-source-selections create 1 \
+        os="ubuntu" release="noble" arches="amd64" subarches="*" labels="*" 2>&1); then
+        if echo "$output" | grep -q "already exists"; then
+            log "Boot source selection already exists"
+        else
+            fail "Failed to create boot source selection: $output"
+        fi
+    fi
     maas deployprofile boot-resources import
 
     log "Waiting for boot resource import to complete"
@@ -333,9 +319,9 @@ maas_assign_vlans_to_spaces() {
 # Main
 # ===========================================================================
 
-# Consume the optional 'maas' first argument; remaining args forwarded to
+# Consume the optional '--maas' first argument; remaining args forwarded to
 # terraform apply (e.g. -var-file custom.tfvars).
-if [[ "${1:-}" == "maas" ]]; then
+if [[ "${1:-}" == "--maas" ]]; then
     MODE="maas"
     shift
 else
@@ -372,13 +358,8 @@ lxd_initialized() {
 if lxd_initialized; then
     log "LXD already initialised"
 else
-    if [[ "$MODE" == "maas" ]]; then
-        log "Initialising LXD (MAAS mode) using disk ${largest_disk}"
-        lxd_init_maas "$largest_disk" || fail "LXD initialisation failed"
-    else
-        log "Initialising LXD using disk ${largest_disk}"
-        lxd_init "$largest_disk" || fail "LXD initialisation failed"
-    fi
+    log "Initialising LXD (${MODE} mode) using disk ${largest_disk}"
+    lxd_init "$largest_disk" "$MODE" || fail "LXD initialisation failed"
 fi
 
 # -- Install Terraform if missing --------------------------------------------
@@ -432,10 +413,6 @@ if [[ "$MODE" == "maas" ]]; then
         -var="lxd_host_address=https://127.0.0.1:8443" \
         "$@"
 
-    [[ -s "$PLAN_DIR/testbed.yaml" ]] || fail "testbed.yaml was not generated"
-    log "Bootstrap complete"
-    log "Testbed description: $PLAN_DIR/testbed.yaml"
-
 else
     PLAN_DIR="$SCRIPT_DIR/manual-infra"
 
@@ -445,8 +422,8 @@ else
     log "Running terraform apply (forwarding script arguments)"
     run_as_lxd_group terraform -chdir="$PLAN_DIR" apply \
         -input=false -auto-approve "$@"
-
-    [[ -s "$PLAN_DIR/testbed.yaml" ]] || fail "testbed.yaml was not generated"
-    log "Bootstrap complete"
-    log "Testbed description: $PLAN_DIR/testbed.yaml"
 fi
+
+[[ -s "$PLAN_DIR/testbed.yaml" ]] || fail "testbed.yaml was not generated"
+log "Bootstrap complete"
+log "Testbed description: $PLAN_DIR/testbed.yaml"
