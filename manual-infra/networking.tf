@@ -15,7 +15,6 @@ locals {
 resource "lxd_network" "restricted" {
   name = "restrictedbr0"
 
-  # lxc network set restrictedbr0 raw.dnsmasq="host-record=ns.sunbeam.res,192.167.98.234"
   config = {
     "ipv4.address" = "${cidrhost(local.restricted_net, 1)}/24"
     "ipv4.nat"     = "true"
@@ -25,7 +24,6 @@ resource "lxd_network" "restricted" {
     "ipv6.dhcp"    = "false"
     "dns.domain"   = local.restricted_domain
     "dns.mode"     = "managed"
-    # "security.acls" = lxd_network_acl.restricted.name
     "raw.dnsmasq" = <<-EOT
       host-record=public.sunbeam.${local.restricted_domain},${cidrhost(local.restricted_net, local.restricted_allowed_dhcp_range[1] + 4)}
       host-record=internal.sunbeam.${local.restricted_domain},${cidrhost(local.restricted_net, local.restricted_allowed_dhcp_range[1] + 5)}
@@ -45,7 +43,6 @@ resource "lxd_network" "computes" {
     "ipv6.address" = "none"
   }
 }
-
 
 resource "lxd_network_acl" "restricted" {
   name = "restricted"

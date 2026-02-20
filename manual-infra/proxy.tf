@@ -68,7 +68,6 @@ resource "lxd_instance_file" "allowed_domains" {
   mode        = "0644"
   uid         = 0
   gid         = 0
-
 }
 
 resource "lxd_instance_file" "squid_conf_block" {
@@ -93,7 +92,6 @@ resource "lxd_instance_file" "squid_conf_block" {
       lxd_instance_file.allowed_domains
     ]
   }
-
 }
 
 resource "null_resource" "proxy" {

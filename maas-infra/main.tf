@@ -4,13 +4,9 @@ terraform {
       source  = "terraform-lxd/lxd"
       version = ">=2.5.0"
     }
-    cloudinit = {
-      source  = "hashicorp/cloudinit"
-      version = ">=2.3.6"
-    }
-    null = {
-      source  = "hashicorp/null"
-      version = ">=3.2.0"
+    maas = {
+      source  = "canonical/maas"
+      version = "~>2.0"
     }
     tls = {
       source  = "hashicorp/tls"
@@ -19,8 +15,6 @@ terraform {
   }
 }
 
-provider "cloudinit" {}
-provider "null" {}
 provider "tls" {}
 
 provider "lxd" {
@@ -31,6 +25,12 @@ provider "lxd" {
     default = true
     address = var.lxd_host_address
   }
+}
+
+provider "maas" {
+  api_version = "2.0"
+  api_key     = var.maas_api_key
+  api_url     = var.maas_api_url
 }
 
 resource "tls_private_key" "global" {
@@ -50,29 +50,7 @@ resource "local_file" "ssh_public_key" {
 }
 
 locals {
-  manual_testbed_content = <<-EOT
-deployment:
-  provider: manual
-  channel: 2024.1/edge
-  topology: multi-node
-  manifest: /home/ubuntu/manifest.yaml
-machines:
-%{for vm in local.computed_nodes~}
-  - hostname: ${vm.hostname}
-    ip: ${vm.ip}
-    fqdn: ${vm.fqdn}
-    osd-devices: ${join(",", vm.osd_devices)}
-    roles: ${jsonencode(vm.roles)}
-    external-networks:
-      external: ${vm.management_net}
-%{endfor~}
-ssh:
-  user: ubuntu
-  private_key: ${abspath(local_sensitive_file.ssh_private_key.filename)}
-  public_key: ${abspath(local_file.ssh_public_key.filename)}
-EOT
-
-  maas_testbed_content = <<-EOT
+  testbed_content = <<-EOT
 deployment:
   provider: maas
   channel: 2024.1/edge
@@ -86,7 +64,7 @@ spaces:
   ${net_type}: ${net_type}
 %{endfor~}
 machines:
-%{for vm in concat(module.maas_juju_controller, module.maas_sunbeam)~}
+%{for vm in [module.maas_juju_controller, module.maas_sunbeam]~}
   - hostname: ${vm.hostname}
     ip: ${vm.ip}
     fqdn: ${vm.fqdn}
@@ -107,6 +85,6 @@ EOT
 }
 
 resource "local_file" "testbed_yaml" {
-  content  = var.enable_maas ? local.maas_testbed_content : local.manual_testbed_content
+  content  = local.testbed_content
   filename = "testbed.yaml"
 }

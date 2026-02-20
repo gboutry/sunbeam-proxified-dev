@@ -4,3 +4,4 @@ cloud.yaml
 *.tfstate*
 *.terraform
 *.auto.tfvars.json
+*.tfvars

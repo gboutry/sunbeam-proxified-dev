@@ -1,7 +1,6 @@
 locals {
-  # Compute nodes data extracted from module output for reuse
   computed_nodes = [
-    for i, vm in module.compute : {
+    for i, vm in module.manual_compute : {
       name           = vm.name
       fqdn           = vm.fqdn
       hostname       = vm.hostname
@@ -57,17 +56,4 @@ output "compute_network_names" {
   value = [
     for net in lxd_network.computes : net.name
   ]
-}
-
-output "maas_nodes" {
-  description = "MAAS-specific VMs (juju-controller and sunbeam), empty when enable_maas = false"
-  value = var.enable_maas ? concat(
-    [for vm in module.maas_juju_controller : { name = vm.name, ip = vm.ip, fqdn = vm.fqdn, roles = vm.roles }],
-    [for vm in module.maas_sunbeam : { name = vm.name, ip = vm.ip, fqdn = vm.fqdn, roles = vm.roles }]
-  ) : []
-}
-
-output "maas_networks" {
-  description = "MAAS cloud network bridge names keyed by network type, empty when enable_maas = false"
-  value       = { for k, net in lxd_network.maas_networks : k => net.name }
 }
