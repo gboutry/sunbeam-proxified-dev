@@ -26,12 +26,13 @@ module "maas_juju_controller" {
   management_domain = var.management_domain
   vm_host           = maas_vm_host.lxd.id
 
-  cores          = "2"
-  memory         = "4GiB"
-  root_disk_size = "40GiB"
-  nb_osd         = 0
-  osd_disk_size  = "50GiB"
-  roles          = ["juju-controller"]
+  cores           = "2"
+  memory          = "4GiB"
+  root_disk_size  = "40GiB"
+  nb_osd          = 0
+  osd_disk_size   = "50GiB"
+  roles           = ["juju-controller"]
+  isolation_cidrs = []
 }
 
 module "maas_sunbeam" {
@@ -42,12 +43,13 @@ module "maas_sunbeam" {
   management_domain = var.management_domain
   vm_host           = maas_vm_host.lxd.id
 
-  cores          = "2"
-  memory         = "4GiB"
-  root_disk_size = "40GiB"
-  nb_osd         = 0
-  osd_disk_size  = "50GiB"
-  roles          = ["sunbeam"]
+  cores           = "2"
+  memory          = "4GiB"
+  root_disk_size  = "40GiB"
+  nb_osd          = 0
+  osd_disk_size   = "50GiB"
+  roles           = ["sunbeam"]
+  isolation_cidrs = []
 }
 
 resource "maas_tag" "roles" {

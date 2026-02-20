@@ -53,9 +53,10 @@ variable "maas_api_key" {
 }
 
 variable "lxd_trust_password" {
-  description = "LXD trust password for MAAS VM host registration"
+  description = "LXD trust password for MAAS VM host registration (optional; leave empty to use certificate-based trust — see bootstrap.sh)"
   type        = string
   sensitive   = true
+  default     = ""
 }
 
 variable "management_domain" {

@@ -35,3 +35,12 @@ resource "lxd_network" "maas_networks" {
     "ipv6.address" = "none"
   }
 }
+
+# Create one MAAS space per OpenStack network type.
+# VLAN-to-space assignment is handled by bootstrap.sh after MAAS discovers
+# the bridges (MAAS discovery takes ~60s, making data-source lookups unreliable
+# within the same apply that creates the bridges).
+resource "maas_space" "openstack" {
+  for_each = local.maas_network_configs
+  name     = each.key
+}

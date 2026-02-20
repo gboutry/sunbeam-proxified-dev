@@ -19,3 +19,9 @@ variable "roles" {
   type    = list(string)
   default = []
 }
+
+variable "isolation_cidrs" {
+  description = "Subnet CIDRs for additional NICs (OpenStack isolation networks). Each CIDR maps to one extra NIC on the corresponding MAAS-managed bridge."
+  type        = list(string)
+  default     = []
+}

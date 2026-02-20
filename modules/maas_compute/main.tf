@@ -26,4 +26,14 @@ resource "maas_vm_host_machine" "compute" {
     for_each = range(var.nb_osd)
     content { size_gigabytes = local.osd_disk_gb }
   }
+
+  # eth0 is the management NIC (attached to mgmt bridge via LXD default profile).
+  # Isolation NICs start at eth1, one per OpenStack network the VM participates in.
+  dynamic "network_interfaces" {
+    for_each = var.isolation_cidrs
+    content {
+      name        = "eth${network_interfaces.key + 1}"
+      subnet_cidr = network_interfaces.value
+    }
+  }
 }
