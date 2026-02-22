@@ -75,14 +75,15 @@ find_largest_disk() {
     return 1
 }
 
-cidr_gateway_ip() {
+cidr_host_ip() {
     local cidr="$1"
-    python3 - "$cidr" <<'PY'
+    local host_index="$2"
+    python3 - "$cidr" "$host_index" <<'PY'
 import ipaddress
 import sys
 
 network = ipaddress.ip_network(sys.argv[1], strict=False)
-print(network.network_address + 1)
+print(network.network_address + int(sys.argv[2]))
 PY
 }
 
@@ -161,6 +162,7 @@ configure_host_domain_resolution() {
 
         domain=$(jq -r '.management.domain // empty' <<< "$topology_json")
         mgmt_cidr=$(jq -r '.management.network // empty' <<< "$topology_json")
+        dns_ip=$(jq -r '.management.dns_ip // empty' <<< "$topology_json")
         iface="restrictedbr0"
     else
         log "No split DNS auto-configuration defined for MAAS mode"
@@ -172,7 +174,9 @@ configure_host_domain_resolution() {
         return 0
     fi
 
-    dns_ip=$(cidr_gateway_ip "$mgmt_cidr")
+    if [[ -z "$dns_ip" ]]; then
+        dns_ip=$(cidr_host_ip "$mgmt_cidr" 2)
+    fi
     configure_split_dns "$iface" "$domain" "$dns_ip"
     persist_split_dns "$iface" "$domain" "$dns_ip"
 }

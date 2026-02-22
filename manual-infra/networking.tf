@@ -23,7 +23,10 @@ resource "lxd_network" "restricted" {
     "ipv6.address" = "none"
     "ipv6.dhcp"    = "false"
     "dns.domain"   = local.restricted_domain
-    "dns.mode"     = "managed"
+    "dns.mode"     = "none"
+    "raw.dnsmasq"  = <<EOF
+      server=${local.restricted_dns_ip}
+    EOF
   }
 }
 

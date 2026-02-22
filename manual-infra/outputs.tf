@@ -41,6 +41,7 @@ output "network_topology" {
       name    = lxd_network.restricted.name
       network = local.restricted_net
       domain  = local.restricted_domain
+      dns_ip  = local.restricted_dns_ip
     }
     compute_networks = [
       for i, net in lxd_network.computes : {

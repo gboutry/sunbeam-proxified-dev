@@ -57,6 +57,7 @@ data "cloudinit_config" "cloudinit-dns" {
 
     content = templatefile("${path.root}/templates/dns/cloudinit.yaml", {
       dns_forwarder = var.dns_forwarder,
+      dns_ip        = local.restricted_dns_ip,
     })
   }
 }
