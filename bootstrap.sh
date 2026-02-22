@@ -75,6 +75,108 @@ find_largest_disk() {
     return 1
 }
 
+cidr_gateway_ip() {
+    local cidr="$1"
+    python3 - "$cidr" <<'PY'
+import ipaddress
+import sys
+
+network = ipaddress.ip_network(sys.argv[1], strict=False)
+print(network.network_address + 1)
+PY
+}
+
+configure_split_dns() {
+    local iface="$1"
+    local domain="$2"
+    local dns_ip="$3"
+
+    if ! command -v resolvectl >/dev/null 2>&1; then
+        log "WARNING: resolvectl not found; skipping split DNS setup for *.${domain}"
+        return 0
+    fi
+
+    log "Configuring split DNS: *.${domain} -> ${dns_ip} (iface=${iface})"
+    "${SUDO[@]}" resolvectl dns "$iface" "$dns_ip"
+    "${SUDO[@]}" resolvectl domain "$iface" "~${domain}"
+    "${SUDO[@]}" resolvectl flush-caches || true
+}
+
+persist_split_dns() {
+    local iface="$1"
+    local domain="$2"
+    local dns_ip="$3"
+    local helper_path="/usr/local/sbin/sunbeam-split-dns"
+    local unit_path="/etc/systemd/system/sunbeam-split-dns.service"
+
+    if ! command -v systemctl >/dev/null 2>&1; then
+        log "WARNING: systemctl not found; split DNS persistence skipped"
+        return 0
+    fi
+
+    log "Persisting split DNS configuration across reboot"
+
+    cat <<EOF | "${SUDO[@]}" tee "$helper_path" >/dev/null
+#!/usr/bin/env bash
+set -euo pipefail
+resolvectl dns "${iface}" "${dns_ip}"
+resolvectl domain "${iface}" "~${domain}"
+resolvectl flush-caches || true
+EOF
+    "${SUDO[@]}" chmod 0755 "$helper_path"
+
+    cat <<EOF | "${SUDO[@]}" tee "$unit_path" >/dev/null
+[Unit]
+Description=Apply Sunbeam split DNS configuration
+After=network-online.target systemd-resolved.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=${helper_path}
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    "${SUDO[@]}" systemctl daemon-reload
+    "${SUDO[@]}" systemctl enable --now sunbeam-split-dns.service
+}
+
+configure_host_domain_resolution() {
+    local plan_dir="$1"
+    local mode="$2"
+    local domain=""
+    local mgmt_cidr=""
+    local dns_ip=""
+    local iface=""
+
+    if [[ "$mode" == "manual" ]]; then
+        local topology_json
+        if ! topology_json=$(run_as_lxd_group terraform -chdir="$plan_dir" output -json network_topology 2>/dev/null); then
+            log "WARNING: unable to read terraform output 'network_topology'; split DNS skipped"
+            return 0
+        fi
+
+        domain=$(jq -r '.management.domain // empty' <<< "$topology_json")
+        mgmt_cidr=$(jq -r '.management.network // empty' <<< "$topology_json")
+        iface="restrictedbr0"
+    else
+        log "No split DNS auto-configuration defined for MAAS mode"
+        return 0
+    fi
+
+    if [[ -z "$domain" || -z "$mgmt_cidr" ]]; then
+        log "WARNING: missing domain or management CIDR from Terraform outputs; split DNS skipped"
+        return 0
+    fi
+
+    dns_ip=$(cidr_gateway_ip "$mgmt_cidr")
+    configure_split_dns "$iface" "$domain" "$dns_ip"
+    persist_split_dns "$iface" "$domain" "$dns_ip"
+}
+
 # ---------------------------------------------------------------------------
 # LXD initialisation preseeds
 # ---------------------------------------------------------------------------
@@ -425,5 +527,6 @@ else
 fi
 
 [[ -s "$PLAN_DIR/testbed.yaml" ]] || fail "testbed.yaml was not generated"
+configure_host_domain_resolution "$PLAN_DIR" "$MODE"
 log "Bootstrap complete"
 log "Testbed description: $PLAN_DIR/testbed.yaml"
