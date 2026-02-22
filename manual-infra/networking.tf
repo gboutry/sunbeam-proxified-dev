@@ -5,7 +5,7 @@ data "lxd_network" "main_bridge" {
 locals {
   restricted_net                = "192.167.98.0/24"
   restricted_domain             = "res"
-  restricted_allowed_dhcp_range = [2, 229]
+  restricted_allowed_dhcp_range = [3, 229]
   nb_compute_networks           = 3
   compute_nets = [
     for i in range(local.nb_compute_networks) : "10.20.${30 + i * 10}.0/24"
@@ -24,11 +24,6 @@ resource "lxd_network" "restricted" {
     "ipv6.dhcp"    = "false"
     "dns.domain"   = local.restricted_domain
     "dns.mode"     = "managed"
-    "raw.dnsmasq" = <<-EOT
-      host-record=public.sunbeam.${local.restricted_domain},${cidrhost(local.restricted_net, local.restricted_allowed_dhcp_range[1] + 4)}
-      host-record=internal.sunbeam.${local.restricted_domain},${cidrhost(local.restricted_net, local.restricted_allowed_dhcp_range[1] + 5)}
-      host-record=s3.sunbeam.${local.restricted_domain},${cidrhost(local.restricted_net, local.restricted_allowed_dhcp_range[1] + 6)}
-    EOT
   }
 }
 

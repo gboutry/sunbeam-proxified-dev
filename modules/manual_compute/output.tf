@@ -1,5 +1,5 @@
 output "ip" {
-  value = lxd_instance.compute.ipv4_address
+  value = var.management_ip
 }
 
 output "name" {

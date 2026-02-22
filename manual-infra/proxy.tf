@@ -1,7 +1,7 @@
 locals {
   proxy_url      = var.use_proxy ? "http://${lxd_instance.proxy[0].name}.${lxd_network.restricted.config["dns.domain"]}:3128" : ""
   main_bridge_ip = cidrhost(data.lxd_network.main_bridge.config["ipv4.address"], 2)
-  proxy_ip       = var.use_proxy ? cidrhost(lxd_network.restricted.config["ipv4.address"], 2) : ""
+  proxy_ip       = var.use_proxy ? cidrhost(lxd_network.restricted.config["ipv4.address"], 3) : ""
 }
 
 data "cloudinit_config" "cloudinit-proxy" {

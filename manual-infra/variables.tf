@@ -8,6 +8,12 @@ variable "use_proxy" {
   default     = false
 }
 
+variable "dns_forwarder" {
+  description = "Upstream DNS server used by the dedicated dnsmasq container"
+  type        = string
+  default     = "8.8.8.8"
+}
+
 variable "vm_config" {
   description = "Default configuration for all VMs"
   type = object({

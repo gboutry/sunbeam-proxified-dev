@@ -78,8 +78,9 @@ resource "lxd_instance" "compute" {
     name = "eth0"
     type = "nic"
     properties = {
-      name    = "eth0"
-      network = var.management_net
+      name           = "eth0"
+      network        = var.management_net
+      "ipv4.address" = var.management_ip
     }
   }
 
