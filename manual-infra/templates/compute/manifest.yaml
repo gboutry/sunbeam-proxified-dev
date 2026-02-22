@@ -73,7 +73,7 @@ core:
     juju:
       bootstrap_args:
         - --bootstrap-constraints
-        - root-disk=5G
+        - root-disk=10G
         - --config
         - caas-image-repo=ghcr.io/juju
     charms:
