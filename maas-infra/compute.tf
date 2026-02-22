@@ -15,9 +15,9 @@ locals {
   vm_isolation_cidrs = [
     for i in range(var.nb_vm) : distinct(flatten([
       for role in try(var.vm_config_override["vm${i}"].roles, var.vm_config.roles) :
-        [for net_type in lookup(local.maas_role_to_net_types, role, []) :
-          local.net_type_to_cidr[net_type]
-        ]
+      [for net_type in lookup(local.maas_role_to_net_types, role, []) :
+        local.net_type_to_cidr[net_type]
+      ]
     ]))
   ]
 }

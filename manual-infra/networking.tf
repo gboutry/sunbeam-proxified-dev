@@ -16,17 +16,14 @@ resource "lxd_network" "restricted" {
   name = "restrictedbr0"
 
   config = {
-    "ipv4.address" = "${cidrhost(local.restricted_net, 1)}/24"
-    "ipv4.nat"     = "true"
-    "ipv4.dhcp"    = "true"
-    "ipv4.dhcp.ranges" : "${cidrhost(local.restricted_net, local.restricted_allowed_dhcp_range[0])}-${cidrhost(local.restricted_net, local.restricted_allowed_dhcp_range[1])}"
-    "ipv6.address" = "none"
-    "ipv6.dhcp"    = "false"
-    "dns.domain"   = local.restricted_domain
-    "dns.mode"     = "none"
-    "raw.dnsmasq"  = <<EOF
-      server=${local.restricted_dns_ip}
-    EOF
+    "ipv4.address"     = "${cidrhost(local.restricted_net, 1)}/24"
+    "ipv4.nat"         = "true"
+    "ipv4.dhcp"        = "true"
+    "ipv4.dhcp.ranges" = "${cidrhost(local.restricted_net, local.restricted_allowed_dhcp_range[0])}-${cidrhost(local.restricted_net, local.restricted_allowed_dhcp_range[1])}"
+    "ipv6.address"     = "none"
+    "ipv6.dhcp"        = "false"
+    "dns.domain"       = local.restricted_domain
+    "dns.mode"         = "managed"
   }
 }
 
@@ -39,6 +36,7 @@ resource "lxd_network" "computes" {
     "ipv4.nat"     = "true"
     "ipv4.dhcp"    = "false"
     "ipv6.address" = "none"
+    "dns.mode"     = "none"
   }
 }
 

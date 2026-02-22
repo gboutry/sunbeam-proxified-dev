@@ -2,9 +2,9 @@ version: 2
 ethernets:
   eth0:
     match: { name: enp5* }
-    dhcp4: true
-    dhcp4-overrides:
-        use-routes: false
+    dhcp4: false
+    addresses:
+      - ${management_ip}/24
     routes:
       - to: default
         via: ${proxy_ip}

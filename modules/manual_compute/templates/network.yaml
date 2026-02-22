@@ -2,7 +2,13 @@ version: 2
 ethernets:
   eth0:
     match: { name: enp5* }
-    dhcp4: true
+    dhcp4: false
+    addresses:
+      - ${management_ip}/24
+    routes:
+      - to: default
+        via: ${management_gateway}
+        on-link: true
     nameservers:
       addresses: ${nameservers}
       search: ${search_domains}

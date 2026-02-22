@@ -129,16 +129,17 @@ module "manual_compute" {
   isolation_nets = local.vm_effective_isolation_nets[count.index]
   roles          = try(var.vm_config_override["vm${count.index}"].roles, var.vm_config.roles)
 
-  hostname          = "bm${count.index}"
-  management_domain = local.restricted_domain
-  management_net    = lxd_network.restricted.name
-  management_dns    = local.nameserver
-  management_ip     = local.compute_management_ips[count.index]
-  proxy_url         = local.proxy_url
-  proxy_ip          = local.restricted_proxy_ip
-  no_proxy          = local.no_proxy
-  use_proxy         = var.use_proxy
-  ssh_public_key    = trimspace(tls_private_key.global.public_key_openssh)
+  hostname           = "bm${count.index}"
+  management_domain  = local.restricted_domain
+  management_net     = lxd_network.restricted.name
+  management_dns     = local.nameserver
+  management_ip      = local.compute_management_ips[count.index]
+  management_gateway = cidrhost(local.restricted_net, 1)
+  proxy_url          = local.proxy_url
+  proxy_ip           = local.restricted_proxy_ip
+  no_proxy           = local.no_proxy
+  use_proxy          = var.use_proxy
+  ssh_public_key     = trimspace(tls_private_key.global.public_key_openssh)
 }
 
 resource "local_file" "manifest_yaml" {

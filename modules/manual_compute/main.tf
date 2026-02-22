@@ -64,13 +64,16 @@ resource "lxd_instance" "compute" {
     "user.user-data"        = data.cloudinit_config.cloudinit-compute.rendered
     "user.network-config" = var.use_proxy ? templatefile("${path.module}/templates/network-proxy.yaml", {
       proxy_ip       = var.proxy_ip
+      management_ip  = var.management_ip
       nameservers    = jsonencode([var.management_dns])
       search_domains = jsonencode([var.management_domain])
       nb_extra_nics  = length(var.compute_nets) + length(var.isolation_nets)
       }) : templatefile("${path.module}/templates/network.yaml", {
-      nameservers    = jsonencode([var.management_dns])
-      search_domains = jsonencode([var.management_domain])
-      nb_extra_nics  = length(var.compute_nets) + length(var.isolation_nets)
+      management_ip      = var.management_ip
+      management_gateway = var.management_gateway
+      nameservers        = jsonencode([var.management_dns])
+      search_domains     = jsonencode([var.management_domain])
+      nb_extra_nics      = length(var.compute_nets) + length(var.isolation_nets)
     })
   }
 
