@@ -140,9 +140,7 @@ module "manual_compute" {
   ssh_public_key    = trimspace(tls_private_key.global.public_key_openssh)
 }
 
-resource "lxd_instance_file" "manifest" {
-  depends_on = [module.manual_compute]
-  instance   = module.manual_compute[0].name
+resource "local_file" "manifest_yaml" {
   content = templatefile("${path.root}/templates/compute/manifest.yaml", {
     use_proxy          = var.use_proxy,
     proxy_url          = local.proxy_url,
@@ -154,8 +152,5 @@ resource "lxd_instance_file" "manifest" {
     external_networks  = local.external_networks
     osds               = { for compute in module.manual_compute : compute.fqdn => join(",", formatlist("/dev/disk/by-id/scsi-SQEMU_QEMU_HARDDISK_lxd_%s", compute.osds)) }
   })
-  target_path = "/home/ubuntu/manifest.yaml"
-  mode        = "0644"
-  uid         = 1000
-  gid         = 1000
+  filename = "${path.root}/manifest.yaml"
 }

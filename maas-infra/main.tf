@@ -50,12 +50,17 @@ resource "local_file" "ssh_public_key" {
 }
 
 locals {
+  manifest_content = templatefile("${path.root}/templates/manifest.yaml", {
+    management_cidr = var.maas_network_cidrs.internal,
+    nameservers     = cidrhost(var.maas_network_cidrs.internal, 1),
+  })
+
   testbed_content = <<-EOT
 deployment:
   provider: maas
   channel: 2024.1/edge
   topology: multi-node
-  manifest: /home/ubuntu/manifest.yaml
+  manifest: ${abspath(local_file.manifest_yaml.filename)}
 lxd-host:
   address: ${var.lxd_host_address}
 spaces:
@@ -82,6 +87,11 @@ ssh:
   private_key: ${abspath(local_sensitive_file.ssh_private_key.filename)}
   public_key: ${abspath(local_file.ssh_public_key.filename)}
 EOT
+}
+
+resource "local_file" "manifest_yaml" {
+  content  = local.manifest_content
+  filename = "${path.root}/manifest.yaml"
 }
 
 resource "local_file" "testbed_yaml" {

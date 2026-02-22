@@ -1,0 +1,14 @@
+core:
+  config:
+    region: LizardTwo
+    database: single
+    bootstrap:
+      management_cidr: ${management_cidr}
+    user:
+      run_demo_setup: True
+      username: gtestos
+      password: demo
+      cidr: 192.168.122.0/24
+      nameservers: ${nameservers}
+      security_group_rules: True
+      remote_access_location: remote
