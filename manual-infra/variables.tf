@@ -27,8 +27,8 @@ variable "vm_config" {
     roles          = list(string)
   })
   default = {
-    cores          = "6"
-    memory         = "18GiB"
+    cores          = "10"
+    memory         = "32GiB"
     root_disk_size = "120GiB"
     nb_osd         = 3
     osd_disk_size  = "50GiB"
