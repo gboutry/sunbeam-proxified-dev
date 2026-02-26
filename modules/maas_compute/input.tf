@@ -1,5 +1,15 @@
 variable "hostname" { type = string }
 variable "management_domain" { type = string }
+variable "management_subnet_cidr" {
+  description = "Management subnet CIDR used for the primary NIC."
+  type        = string
+  default     = "10.10.10.0/24"
+}
+variable "management_ip" {
+  description = "Optional static management IP for eth0."
+  type        = string
+  default     = ""
+}
 variable "vm_host" {
   description = "MAAS system_id or name of the LXD VM host"
   type        = string

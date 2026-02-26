@@ -23,9 +23,11 @@ module "maas_juju_controller" {
   depends_on = [maas_vm_host.lxd]
   source     = "../modules/maas_compute"
 
-  hostname          = "juju-controller"
-  management_domain = var.management_domain
-  vm_host           = maas_vm_host.lxd.id
+  hostname               = "juju-controller"
+  management_domain      = var.management_domain
+  management_subnet_cidr = "10.10.10.0/24"
+  management_ip          = cidrhost("10.10.10.0/24", 11)
+  vm_host                = maas_vm_host.lxd.id
 
   cores           = "2"
   memory          = "4GiB"
@@ -40,9 +42,11 @@ module "maas_sunbeam" {
   depends_on = [maas_vm_host.lxd]
   source     = "../modules/maas_compute"
 
-  hostname          = "sunbeam"
-  management_domain = var.management_domain
-  vm_host           = maas_vm_host.lxd.id
+  hostname               = "sunbeam"
+  management_domain      = var.management_domain
+  management_subnet_cidr = "10.10.10.0/24"
+  management_ip          = cidrhost("10.10.10.0/24", 12)
+  vm_host                = maas_vm_host.lxd.id
 
   cores           = "2"
   memory          = "4GiB"

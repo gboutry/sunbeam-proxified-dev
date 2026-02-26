@@ -61,19 +61,14 @@ deployment:
   channel: 2024.1/edge
   topology: multi-node
   manifest: ${abspath(local_file.manifest_yaml.filename)}
-lxd-host:
-  address: ${var.lxd_host_address}
-spaces:
-  management: management
-%{for net_type, net_cfg in local.maas_network_configs~}
-  ${net_type}: ${net_type}
-%{endfor~}
 machines:
 %{for vm in [module.maas_juju_controller, module.maas_sunbeam]~}
   - hostname: ${vm.hostname}
     ip: ${vm.ip}
     fqdn: ${vm.fqdn}
     roles: ${jsonencode(vm.roles)}
+    external-networks:
+      external: management
 %{endfor~}
 %{for vm in local.computed_nodes~}
   - hostname: ${vm.hostname}
@@ -81,6 +76,8 @@ machines:
     fqdn: ${vm.fqdn}
     osd-devices: ${join(",", vm.osd_devices)}
     roles: ${jsonencode(vm.roles)}
+    external-networks:
+      external: management
 %{endfor~}
 ssh:
   user: ubuntu

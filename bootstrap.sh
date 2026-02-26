@@ -245,15 +245,22 @@ bootstrap_maas() {
     # -- Initialise region+rack controller -----------------------------------
     log "Initialising MAAS region+rack controller"
     "${SUDO[@]}" maas init region+rack \
+        --force \
         --database-uri maas-test-db:/// \
         --maas-url "http://${ip_address}:5240/MAAS"
 
     # -- Create admin account and save the API key ---------------------------
     log "Creating MAAS admin account"
-    "${SUDO[@]}" maas createadmin \
+    if ! output=$("${SUDO[@]}" maas createadmin \
         --username=admin \
         --password=ubuntu \
-        --email=admin@example.com
+        --email=admin@example.com 2>&1); then
+        if echo "$output" | grep -q "AlreadyExistingUser"; then
+            log "MAAS admin account already exists"
+        else
+            fail "Failed to create MAAS admin account: $output"
+        fi
+    fi
     "${SUDO[@]}" maas apikey --username=admin > ~/maas-apikey
 
     sleep 30
@@ -306,7 +313,13 @@ bootstrap_maas() {
     # -- SSH key for MAAS agents (commissioning / deployment) ----------------
     log "Adding SSH key to MAAS"
     [[ -f ~/.ssh/id_rsa ]] || ssh-keygen -t rsa -N "" -q -f ~/.ssh/id_rsa
-    maas deployprofile sshkeys create key="$(cat ~/.ssh/id_rsa.pub)"
+    if ! output=$(maas deployprofile sshkeys create key="$(cat ~/.ssh/id_rsa.pub)" 2>&1); then
+        if echo "$output" | grep -q "already been added"; then
+            log "SSH key already present in MAAS"
+        else
+            fail "Failed to add SSH key to MAAS: $output"
+        fi
+    fi
 
     # -- Wait for MAAS to discover the mgmt bridge ---------------------------
     log "Waiting for MAAS to discover the mgmt network (60s)"
@@ -339,12 +352,30 @@ bootstrap_maas() {
     #  .2–.10    = reserved (infrastructure)
     #  .11–.50   = dynamic (MAAS DHCP for commissioning / deployment)
     #  .51–.70   = reserved (OpenStack API VIPs)
-    maas deployprofile ipranges create \
-        type=reserved start_ip=10.10.10.2  end_ip=10.10.10.10  subnet="$subnet_id"
-    maas deployprofile ipranges create \
-        type=dynamic  start_ip=10.10.10.11 end_ip=10.10.10.50  subnet="$subnet_id"
-    maas deployprofile ipranges create \
-        type=reserved start_ip=10.10.10.51 end_ip=10.10.10.70  subnet="$subnet_id"
+    if ! output=$(maas deployprofile ipranges create \
+        type=reserved start_ip=10.10.10.2 end_ip=10.10.10.10 subnet="$subnet_id" 2>&1); then
+        if echo "$output" | grep -qi "conflicts with an existing"; then
+            log "Reserved IP range 10.10.10.2-10 already exists"
+        else
+            fail "Failed to create reserved IP range 10.10.10.2-10: $output"
+        fi
+    fi
+    if ! output=$(maas deployprofile ipranges create \
+        type=dynamic start_ip=10.10.10.11 end_ip=10.10.10.50 subnet="$subnet_id" 2>&1); then
+        if echo "$output" | grep -qi "conflicts with an existing"; then
+            log "Dynamic IP range 10.10.10.11-50 already exists"
+        else
+            fail "Failed to create dynamic IP range 10.10.10.11-50: $output"
+        fi
+    fi
+    if ! output=$(maas deployprofile ipranges create \
+        type=reserved start_ip=10.10.10.51 end_ip=10.10.10.70 subnet="$subnet_id" 2>&1); then
+        if echo "$output" | grep -qi "conflicts with an existing"; then
+            log "Reserved IP range 10.10.10.51-70 already exists"
+        else
+            fail "Failed to create reserved IP range 10.10.10.51-70: $output"
+        fi
+    fi
 
     maas deployprofile subnet update "$subnet_id" gateway_ip=10.10.10.1
 
@@ -442,6 +473,29 @@ maas_wait_for_subnets_discovery() {
     done
 
     fail "Timed out waiting for MAAS to discover LXD bridge subnets"
+}
+
+# ---------------------------------------------------------------------------
+# If MAAS was re-initialized, previously tracked MAAS resources can disappear
+# while still being present in Terraform state. Drop only those stale entries.
+# ---------------------------------------------------------------------------
+maas_reconcile_stale_state() {
+    local plan_dir="$1"
+    local spaces_json state_list space_name addr
+
+    if ! spaces_json=$(maas deployprofile spaces read 2>/dev/null); then
+        log "WARNING: unable to query MAAS spaces for state reconciliation"
+        return 0
+    fi
+    state_list="$(run_as_lxd_group terraform -chdir="$plan_dir" state list 2>/dev/null || true)"
+
+    for space_name in internal public data storage storage-cluster; do
+        addr="maas_space.openstack[\"${space_name}\"]"
+        if grep -Fxq "$addr" <<< "$state_list" && ! jq -e --arg n "$space_name" '.[] | select(.name == $n)' >/dev/null <<< "$spaces_json"; then
+            log "Removing stale Terraform state for missing MAAS space '$space_name'"
+            run_as_lxd_group terraform -chdir="$plan_dir" state rm "$addr" >/dev/null
+        fi
+    done
 }
 
 # ===========================================================================
@@ -566,14 +620,37 @@ if [[ "$MODE" == "maas" ]]; then
     run_as_lxd_group terraform -chdir="$PLAN_DIR" init -input=false
 
     # ---- Phase 1a: create LXD bridges first ---------------------------------
+    # MAAS named binds DNS sockets on discovered interfaces and can race with
+    # LXD bridge creation. Stop MAAS during this phase to avoid dnsmasq bind
+    # conflicts on 10.25.x.1, then bring it back before MAAS API resources.
+    phase1a_maas_stopped=false
+    if command -v systemctl >/dev/null 2>&1; then
+        log "Stopping MAAS before phase 1a to avoid DNS socket conflicts"
+        "${SUDO[@]}" systemctl stop snap.maas.pebble.service
+        phase1a_maas_stopped=true
+    fi
+
     log "Terraform apply — phase 1a: LXD bridge networks"
-    run_as_lxd_group terraform -chdir="$PLAN_DIR" apply \
+    phase1a_status=0
+    if run_as_lxd_group terraform -chdir="$PLAN_DIR" apply \
         -input=false -auto-approve \
         -target=lxd_network.maas_networks \
         -var-file="$MAAS_TFVARS_FILE" \
-        "$@"
+        "$@"; then
+        :
+    else
+        phase1a_status=$?
+    fi
+
+    if [[ "$phase1a_maas_stopped" == "true" ]]; then
+        log "Starting MAAS after phase 1a"
+        "${SUDO[@]}" systemctl start snap.maas.pebble.service
+        sleep 30
+    fi
+    (( phase1a_status == 0 )) || exit "$phase1a_status"
 
     # ---- Phase 1b: register VM host and create MAAS spaces ------------------
+    maas_reconcile_stale_state "$PLAN_DIR"
     # MAAS discovers LXD bridges through the VM host after registration/refresh.
     log "Terraform apply — phase 1b: VM host registration and MAAS spaces"
     run_as_lxd_group terraform -chdir="$PLAN_DIR" apply \
