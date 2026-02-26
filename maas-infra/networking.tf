@@ -21,6 +21,22 @@ locals {
       bridge = "storagecluster"
     }
   }
+
+  # Reserve API endpoint pools on internal/public networks (10 IPs each).
+  maas_api_reserved_ranges = {
+    internal = {
+      subnet  = var.maas_network_cidrs.internal
+      start   = cidrhost(var.maas_network_cidrs.internal, 71)
+      end     = cidrhost(var.maas_network_cidrs.internal, 80)
+      comment = "${var.deployment_name}-internal-api"
+    }
+    public = {
+      subnet  = var.maas_network_cidrs.public
+      start   = cidrhost(var.maas_network_cidrs.public, 71)
+      end     = cidrhost(var.maas_network_cidrs.public, 80)
+      comment = "${var.deployment_name}-public-api"
+    }
+  }
 }
 
 resource "lxd_network" "maas_networks" {
@@ -44,4 +60,16 @@ resource "lxd_network" "maas_networks" {
 resource "maas_space" "openstack" {
   for_each = local.maas_network_configs
   name     = each.key
+}
+
+resource "maas_subnet_ip_range" "openstack_api" {
+  for_each = local.maas_api_reserved_ranges
+
+  subnet   = each.value.subnet
+  type     = "reserved"
+  start_ip = each.value.start
+  end_ip   = each.value.end
+  comment  = each.value.comment
+
+  depends_on = [maas_vm_host.lxd]
 }
