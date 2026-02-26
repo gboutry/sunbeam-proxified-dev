@@ -23,7 +23,7 @@ provider "lxd" {
   remote {
     name    = "lxd_remote"
     default = true
-    address = var.lxd_host_address
+    address = var.lxd_provider_address != "" ? var.lxd_provider_address : var.lxd_host_address
   }
 }
 

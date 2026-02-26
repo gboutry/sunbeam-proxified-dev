@@ -40,6 +40,12 @@ variable "lxd_host_address" {
   type        = string
 }
 
+variable "lxd_provider_address" {
+  description = "Optional address for Terraform LXD provider connectivity; if empty, lxd_host_address is used"
+  type        = string
+  default     = ""
+}
+
 variable "maas_api_url" {
   description = "MAAS API URL"
   type        = string

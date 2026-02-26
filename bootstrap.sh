@@ -549,12 +549,14 @@ if [[ "$MODE" == "maas" ]]; then
         --arg maas_api_url "$MAAS_API_URL" \
         --arg maas_api_key "$MAAS_API_KEY" \
         --arg lxd_host_address "https://127.0.0.1:8443" \
+                --arg lxd_provider_address "unix:///var/snap/lxd/common/lxd/unix.socket" \
         --arg maas_lxd_client_certificate_file "$MAAS_LXD_CERT_FILE" \
         --arg maas_lxd_client_key_file "$MAAS_LXD_KEY_FILE" \
         '{
           maas_api_url: $maas_api_url,
           maas_api_key: $maas_api_key,
           lxd_host_address: $lxd_host_address,
+                    lxd_provider_address: $lxd_provider_address,
           maas_lxd_client_certificate_file: $maas_lxd_client_certificate_file,
           maas_lxd_client_key_file: $maas_lxd_client_key_file
         }' > "$MAAS_TFVARS_FILE"
