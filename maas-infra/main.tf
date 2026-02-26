@@ -60,6 +60,7 @@ deployment:
   provider: maas
   channel: 2024.1/edge
   topology: multi-node
+  manifest-is-overlay: true
   manifest: ${abspath(local_file.manifest_yaml.filename)}
 maas:
   name: ${var.deployment_name}

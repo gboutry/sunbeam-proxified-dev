@@ -12,3 +12,15 @@ core:
       nameservers: ${nameservers}
       security_group_rules: True
       remote_access_location: remote
+  software:
+    juju:
+      bootstrap_args:
+        - --config
+        - caas-image-repo=ghcr.io/juju
+    charms:
+      mysql-k8s:
+        channel: 8.0/beta
+        storage:
+          database: 10G
+      mysql-router-k8s:
+        channel: 8.0/candidate
