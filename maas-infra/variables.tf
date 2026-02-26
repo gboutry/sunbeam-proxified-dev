@@ -2,6 +2,12 @@ variable "nb_vm" {
   default = 3
 }
 
+variable "deployment_name" {
+  description = "Deployment name used by sunbeam and MAAS tags."
+  type        = string
+  default     = "maas"
+}
+
 variable "vm_config" {
   description = "Default configuration for all VMs"
   type = object({

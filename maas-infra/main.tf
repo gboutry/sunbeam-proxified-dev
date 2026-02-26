@@ -62,7 +62,7 @@ deployment:
   topology: multi-node
   manifest: ${abspath(local_file.manifest_yaml.filename)}
 maas:
-  name: maas
+  name: ${var.deployment_name}
   endpoint: ${jsonencode(var.maas_api_url)}
   api_key: ${jsonencode(var.maas_api_key)}
   network_spaces:
