@@ -61,6 +61,14 @@ deployment:
   channel: 2024.1/edge
   topology: multi-node
   manifest: ${abspath(local_file.manifest_yaml.filename)}
+maas:
+  name: maas
+  endpoint: ${jsonencode(var.maas_api_url)}
+  api_key: ${jsonencode(var.maas_api_key)}
+  network_spaces:
+    management: management
+    storage: storage
+    internal: internal
 machines:
 %{for vm in [module.maas_juju_controller, module.maas_sunbeam]~}
   - hostname: ${vm.hostname}
