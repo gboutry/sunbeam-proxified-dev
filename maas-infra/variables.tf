@@ -52,11 +52,15 @@ variable "maas_api_key" {
   sensitive   = true
 }
 
-variable "lxd_trust_password" {
-  description = "LXD trust password for MAAS VM host registration (optional; leave empty to use certificate-based trust — see bootstrap.sh)"
+variable "maas_lxd_client_certificate_file" {
+  description = "Required path to PEM client certificate that MAAS uses to authenticate to LXD (must be trusted by LXD)"
+  type        = string
+}
+
+variable "maas_lxd_client_key_file" {
+  description = "Required path to PEM private key paired with maas_lxd_client_certificate_file"
   type        = string
   sensitive   = true
-  default     = ""
 }
 
 variable "management_domain" {

@@ -14,7 +14,8 @@ locals {
 resource "maas_vm_host" "lxd" {
   type          = "lxd"
   power_address = var.lxd_host_address
-  password      = var.lxd_trust_password
+  certificate   = trimspace(file(var.maas_lxd_client_certificate_file))
+  key           = trimspace(file(var.maas_lxd_client_key_file))
   name          = "lxd-host"
 }
 

@@ -354,26 +354,8 @@ bootstrap_maas() {
     maas deployprofile vlan update "$fabric" "$vlan_vid" dhcp_on=true
 
     log "Management subnet configured with DHCP"
-}
 
-# ---------------------------------------------------------------------------
-# Trust the certificate MAAS generated for itself, then refresh the VM host.
-# Called between phase-1 and phase-2 terraform applies.
-# ---------------------------------------------------------------------------
-maas_trust_lxd_cert() {
-    log "Retrieving MAAS certificate and adding to LXD trust"
-
-    local vm_host_id
-    vm_host_id=$(maas deployprofile vm-hosts read | jq -r '.[0].id')
-    [[ -n "$vm_host_id" ]] || fail "No VM host found in MAAS — phase-1 apply may have failed"
-
-    maas deployprofile vm-host parameters "$vm_host_id" \
-        | jq -r '.certificate' > /tmp/maas_lxd.crt
-    run_as_lxd_group lxc config trust add /tmp/maas_lxd.crt
-    rm -f /tmp/maas_lxd.crt
-
-    log "Refreshing MAAS VM host"
-    maas deployprofile vm-host refresh "$vm_host_id"
+    maas deployprofile maas set-config name=completed_intro value=true
 }
 
 # ---------------------------------------------------------------------------
@@ -483,6 +465,24 @@ if [[ "$MODE" == "maas" ]]; then
     # ---- MAAS system setup (everything Terraform cannot do) ----------------
     bootstrap_maas
 
+    # ---- Bootstrap MAAS<->LXD trust with certificate/key (LXD 6 compatible) ----
+    # Trust password was removed in LXD 6.1+, so create a dedicated client cert
+    # for MAAS, trust it in LXD, and pass it to Terraform for maas_vm_host.
+    require_cmd openssl
+    MAAS_LXD_CERT_DIR="$(mktemp -d /tmp/maas-lxd-cert.XXXXXX)"
+    MAAS_LXD_CERT_FILE="${MAAS_LXD_CERT_DIR}/maas-lxd-client.crt"
+    MAAS_LXD_KEY_FILE="${MAAS_LXD_CERT_DIR}/maas-lxd-client.key"
+    MAAS_LXD_TRUST_NAME="maas-lxd-bootstrap-$(basename "$MAAS_LXD_CERT_DIR")"
+    trap 'rm -rf "$MAAS_LXD_CERT_DIR"' EXIT
+    log "Generating MAAS LXD client certificate"
+    openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes \
+        -keyout "$MAAS_LXD_KEY_FILE" \
+        -out "$MAAS_LXD_CERT_FILE" \
+        -subj "/CN=maas-lxd-bootstrap" >/dev/null 2>&1
+    chmod 0600 "$MAAS_LXD_KEY_FILE"
+    log "Trusting MAAS LXD client certificate in local LXD"
+    run_as_lxd_group lxc config trust add "$MAAS_LXD_CERT_FILE" --name "$MAAS_LXD_TRUST_NAME" >/dev/null
+
     MAAS_API_KEY=$(cat ~/maas-apikey)
     PLAN_DIR="$SCRIPT_DIR/maas-infra"
 
@@ -502,10 +502,9 @@ if [[ "$MODE" == "maas" ]]; then
         -var="maas_api_url=http://$(ip route get 8.8.8.8 | awk '{print $7; exit}'):5240/MAAS" \
         -var="maas_api_key=${MAAS_API_KEY}" \
         -var="lxd_host_address=https://127.0.0.1:8443" \
+        -var="maas_lxd_client_certificate_file=${MAAS_LXD_CERT_FILE}" \
+        -var="maas_lxd_client_key_file=${MAAS_LXD_KEY_FILE}" \
         "$@"
-
-    # ---- Trust MAAS certificate so the VM host becomes operational ---------
-    maas_trust_lxd_cert
 
     # ---- Assign VLANs to spaces (spaces exist; MAAS has had time to discover bridges) ----
     maas_assign_vlans_to_spaces
@@ -517,7 +516,12 @@ if [[ "$MODE" == "maas" ]]; then
         -var="maas_api_url=http://$(ip route get 8.8.8.8 | awk '{print $7; exit}'):5240/MAAS" \
         -var="maas_api_key=${MAAS_API_KEY}" \
         -var="lxd_host_address=https://127.0.0.1:8443" \
+        -var="maas_lxd_client_certificate_file=${MAAS_LXD_CERT_FILE}" \
+        -var="maas_lxd_client_key_file=${MAAS_LXD_KEY_FILE}" \
         "$@"
+
+    trap - EXIT
+    rm -rf "$MAAS_LXD_CERT_DIR"
 
 else
     PLAN_DIR="$SCRIPT_DIR/manual-infra"
