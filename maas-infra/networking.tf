@@ -32,6 +32,7 @@ resource "lxd_network" "maas_networks" {
     "ipv4.address" = "${cidrhost(each.value.cidr, 1)}/24"
     "ipv4.nat"     = "true"
     "ipv4.dhcp"    = "false"
+    "dns.mode"     = "none"
     "ipv6.address" = "none"
   }
 }
