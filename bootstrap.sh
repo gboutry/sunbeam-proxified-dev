@@ -403,6 +403,47 @@ maas_assign_vlans_to_spaces() {
     done
 }
 
+# ---------------------------------------------------------------------------
+# Wait until MAAS has discovered all expected LXD bridge subnets.
+# MAAS only sees these after VM host registration and a discovery delay.
+# ---------------------------------------------------------------------------
+maas_wait_for_subnets_discovery() {
+    declare -A expected_cidrs=(
+        [internal]="10.25.10.0/24"
+        [public]="10.25.20.0/24"
+        [data]="10.25.30.0/24"
+        [storage]="10.25.40.0/24"
+        [storage-cluster]="10.25.50.0/24"
+    )
+
+    local max_attempts=20
+    local attempt=1
+
+    while (( attempt <= max_attempts )); do
+        local missing=0
+        local subnet_dump
+        subnet_dump="$(maas deployprofile subnets read)"
+
+        for space_name in "${!expected_cidrs[@]}"; do
+            local cidr="${expected_cidrs[$space_name]}"
+            if ! jq -e --arg c "$cidr" '.[] | select(.cidr == $c)' >/dev/null <<< "$subnet_dump"; then
+                ((missing++))
+            fi
+        done
+
+        if (( missing == 0 )); then
+            log "MAAS discovered all expected LXD bridge subnets"
+            return 0
+        fi
+
+        log "Waiting for MAAS subnet discovery (${attempt}/${max_attempts}, missing=${missing})"
+        sleep 15
+        ((attempt++))
+    done
+
+    fail "Timed out waiting for MAAS to discover LXD bridge subnets"
+}
+
 # ===========================================================================
 # Main
 # ===========================================================================
@@ -464,47 +505,84 @@ fi
 if [[ "$MODE" == "maas" ]]; then
     # ---- MAAS system setup (everything Terraform cannot do) ----------------
     bootstrap_maas
+    PLAN_DIR="$SCRIPT_DIR/maas-infra"
+    MAAS_API_KEY=$(cat ~/maas-apikey)
+    MAAS_API_URL="http://$(ip route get 8.8.8.8 | awk '{print $7; exit}'):5240/MAAS"
 
     # ---- Bootstrap MAAS<->LXD trust with certificate/key (LXD 6 compatible) ----
-    # Trust password was removed in LXD 6.1+, so create a dedicated client cert
-    # for MAAS, trust it in LXD, and pass it to Terraform for maas_vm_host.
+    # Trust password was removed in LXD 6.1+, so use a dedicated persistent
+    # client cert for MAAS, trust it in LXD, and pass it to Terraform.
     require_cmd openssl
-    MAAS_LXD_CERT_DIR="$(mktemp -d /tmp/maas-lxd-cert.XXXXXX)"
+    MAAS_LXD_CERT_DIR="$PLAN_DIR/.secrets"
     MAAS_LXD_CERT_FILE="${MAAS_LXD_CERT_DIR}/maas-lxd-client.crt"
     MAAS_LXD_KEY_FILE="${MAAS_LXD_CERT_DIR}/maas-lxd-client.key"
-    MAAS_LXD_TRUST_NAME="maas-lxd-bootstrap-$(basename "$MAAS_LXD_CERT_DIR")"
-    trap 'rm -rf "$MAAS_LXD_CERT_DIR"' EXIT
-    log "Generating MAAS LXD client certificate"
-    openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes \
-        -keyout "$MAAS_LXD_KEY_FILE" \
-        -out "$MAAS_LXD_CERT_FILE" \
-        -subj "/CN=maas-lxd-bootstrap" >/dev/null 2>&1
-    chmod 0600 "$MAAS_LXD_KEY_FILE"
-    log "Trusting MAAS LXD client certificate in local LXD"
-    run_as_lxd_group lxc config trust add "$MAAS_LXD_CERT_FILE" --name "$MAAS_LXD_TRUST_NAME" >/dev/null
+    MAAS_TFVARS_FILE="${MAAS_LXD_CERT_DIR}/bootstrap.tfvars.json"
+    MAAS_LXD_TRUST_NAME="maas-lxd-bootstrap"
+    mkdir -p "$MAAS_LXD_CERT_DIR"
+    chmod 0700 "$MAAS_LXD_CERT_DIR"
 
-    MAAS_API_KEY=$(cat ~/maas-apikey)
-    PLAN_DIR="$SCRIPT_DIR/maas-infra"
+    if [[ ! -s "$MAAS_LXD_CERT_FILE" || ! -s "$MAAS_LXD_KEY_FILE" ]]; then
+        log "Generating persistent MAAS LXD client certificate"
+        openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes \
+            -keyout "$MAAS_LXD_KEY_FILE" \
+            -out "$MAAS_LXD_CERT_FILE" \
+            -subj "/CN=maas-lxd-bootstrap" >/dev/null 2>&1
+    else
+        log "Reusing existing MAAS LXD client certificate"
+    fi
+
+    chmod 0644 "$MAAS_LXD_CERT_FILE"
+    chmod 0600 "$MAAS_LXD_KEY_FILE"
+    maas_lxd_cert_fingerprint=""
+    maas_lxd_cert_fingerprint=$(openssl x509 -in "$MAAS_LXD_CERT_FILE" -noout -fingerprint -sha256 \
+        | cut -d= -f2 | tr -d ':' | tr '[:upper:]' '[:lower:]')
+    if run_as_lxd_group lxc config trust list --format json \
+        | jq -e --arg fp "$maas_lxd_cert_fingerprint" '.[] | select(.fingerprint == $fp)' >/dev/null; then
+        log "MAAS LXD client certificate already trusted"
+    else
+        log "Trusting MAAS LXD client certificate in local LXD"
+        run_as_lxd_group lxc config trust add "$MAAS_LXD_CERT_FILE" --name "$MAAS_LXD_TRUST_NAME" >/dev/null
+    fi
+
+    log "Writing Terraform vars file: ${MAAS_TFVARS_FILE}"
+    jq -n \
+        --arg maas_api_url "$MAAS_API_URL" \
+        --arg maas_api_key "$MAAS_API_KEY" \
+        --arg lxd_host_address "https://127.0.0.1:8443" \
+        --arg maas_lxd_client_certificate_file "$MAAS_LXD_CERT_FILE" \
+        --arg maas_lxd_client_key_file "$MAAS_LXD_KEY_FILE" \
+        '{
+          maas_api_url: $maas_api_url,
+          maas_api_key: $maas_api_key,
+          lxd_host_address: $lxd_host_address,
+          maas_lxd_client_certificate_file: $maas_lxd_client_certificate_file,
+          maas_lxd_client_key_file: $maas_lxd_client_key_file
+        }' > "$MAAS_TFVARS_FILE"
+    chmod 0600 "$MAAS_TFVARS_FILE"
 
     log "Running terraform init (maas-infra)"
     run_as_lxd_group terraform -chdir="$PLAN_DIR" init -input=false
 
-    # ---- Phase 1: LXD bridges + MAAS spaces + VM host registration ----------
-    # maas_space.openstack is included here (no timing dependency).
-    # VM host registration creates a MAAS-side record; LXD connectivity is
-    # not yet possible until we add the MAAS certificate to LXD trust.
-    log "Terraform apply — phase 1: bridges, spaces, VM host registration"
+    # ---- Phase 1a: create LXD bridges first ---------------------------------
+    log "Terraform apply — phase 1a: LXD bridge networks"
     run_as_lxd_group terraform -chdir="$PLAN_DIR" apply \
         -input=false -auto-approve \
         -target=lxd_network.maas_networks \
+        -var-file="$MAAS_TFVARS_FILE" \
+        "$@"
+
+    # ---- Phase 1b: register VM host and create MAAS spaces ------------------
+    # MAAS discovers LXD bridges through the VM host after registration/refresh.
+    log "Terraform apply — phase 1b: VM host registration and MAAS spaces"
+    run_as_lxd_group terraform -chdir="$PLAN_DIR" apply \
+        -input=false -auto-approve \
         -target=maas_space.openstack \
         -target=maas_vm_host.lxd \
-        -var="maas_api_url=http://$(ip route get 8.8.8.8 | awk '{print $7; exit}'):5240/MAAS" \
-        -var="maas_api_key=${MAAS_API_KEY}" \
-        -var="lxd_host_address=https://127.0.0.1:8443" \
-        -var="maas_lxd_client_certificate_file=${MAAS_LXD_CERT_FILE}" \
-        -var="maas_lxd_client_key_file=${MAAS_LXD_KEY_FILE}" \
+        -var-file="$MAAS_TFVARS_FILE" \
         "$@"
+
+    # ---- Wait for MAAS to discover bridge subnets before VLAN/space mapping -
+    maas_wait_for_subnets_discovery
 
     # ---- Assign VLANs to spaces (spaces exist; MAAS has had time to discover bridges) ----
     maas_assign_vlans_to_spaces
@@ -513,15 +591,8 @@ if [[ "$MODE" == "maas" ]]; then
     log "Terraform apply — phase 2: full deployment"
     run_as_lxd_group terraform -chdir="$PLAN_DIR" apply \
         -input=false -auto-approve \
-        -var="maas_api_url=http://$(ip route get 8.8.8.8 | awk '{print $7; exit}'):5240/MAAS" \
-        -var="maas_api_key=${MAAS_API_KEY}" \
-        -var="lxd_host_address=https://127.0.0.1:8443" \
-        -var="maas_lxd_client_certificate_file=${MAAS_LXD_CERT_FILE}" \
-        -var="maas_lxd_client_key_file=${MAAS_LXD_KEY_FILE}" \
+        -var-file="$MAAS_TFVARS_FILE" \
         "$@"
-
-    trap - EXIT
-    rm -rf "$MAAS_LXD_CERT_DIR"
 
 else
     PLAN_DIR="$SCRIPT_DIR/manual-infra"
