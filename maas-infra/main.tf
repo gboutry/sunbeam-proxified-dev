@@ -68,7 +68,10 @@ maas:
   api_key: ${jsonencode(var.maas_api_key)}
   network_spaces:
     management: management
+    public: public
+    data: data
     storage: storage
+    storage-cluster: storage-cluster
     internal: internal
 machines:
 %{for vm in [module.maas_juju_controller, module.maas_sunbeam]~}
