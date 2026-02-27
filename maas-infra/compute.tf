@@ -30,7 +30,7 @@ module "maas_compute" {
   hostname               = "bm${count.index}"
   management_domain      = var.management_domain
   management_subnet_cidr = "10.10.10.0/24"
-  management_ip          = cidrhost("10.10.10.0/24", 13 + count.index)
+  management_ip          = cidrhost("10.10.10.0/24", 83 + count.index)
   vm_host                = maas_vm_host.lxd.id
   cores                  = try(var.vm_config_override["vm${count.index}"].cores, var.vm_config.cores)
   memory                 = try(var.vm_config_override["vm${count.index}"].memory, var.vm_config.memory)

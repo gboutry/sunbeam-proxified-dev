@@ -349,17 +349,9 @@ bootstrap_maas() {
 
     # IP layout on 10.10.10.0/24:
     #  .1        = gateway (LXD bridge)
-    #  .2–.10    = reserved (infrastructure)
+    #  .2–.10    = available for explicit static assignments (auto-reserved by MAAS on use)
     #  .11–.50   = dynamic (MAAS DHCP for commissioning / deployment)
     #  .51–.70   = reserved (OpenStack API VIPs)
-    if ! output=$(maas deployprofile ipranges create \
-        type=reserved start_ip=10.10.10.2 end_ip=10.10.10.10 subnet="$subnet_id" 2>&1); then
-        if echo "$output" | grep -qi "conflicts with an existing"; then
-            log "Reserved IP range 10.10.10.2-10 already exists"
-        else
-            fail "Failed to create reserved IP range 10.10.10.2-10: $output"
-        fi
-    fi
     if ! output=$(maas deployprofile ipranges create \
         type=dynamic start_ip=10.10.10.11 end_ip=10.10.10.50 subnet="$subnet_id" 2>&1); then
         if echo "$output" | grep -qi "conflicts with an existing"; then

@@ -27,7 +27,7 @@ module "maas_juju_controller" {
   hostname               = "juju-controller"
   management_domain      = var.management_domain
   management_subnet_cidr = "10.10.10.0/24"
-  management_ip          = cidrhost("10.10.10.0/24", 11)
+  management_ip          = cidrhost("10.10.10.0/24", 81)
   vm_host                = maas_vm_host.lxd.id
 
   cores           = "2"
@@ -46,7 +46,7 @@ module "maas_sunbeam" {
   hostname               = "sunbeam"
   management_domain      = var.management_domain
   management_subnet_cidr = "10.10.10.0/24"
-  management_ip          = cidrhost("10.10.10.0/24", 12)
+  management_ip          = cidrhost("10.10.10.0/24", 82)
   vm_host                = maas_vm_host.lxd.id
 
   cores           = "2"
