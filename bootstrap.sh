@@ -209,7 +209,7 @@ ${network_config}
   project: default
 storage_pools:
 - name: default
-  driver: zfs
+  driver: dir
   config:
     source: ${disk}
 profiles:
