@@ -11,7 +11,7 @@ output "fqdn" {
 }
 
 output "osds" {
-  value = lxd_volume.osd[*].name
+  value = lxd_storage_volume.osd[*].name
 }
 
 output "hostname" {

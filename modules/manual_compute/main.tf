@@ -2,7 +2,7 @@ terraform {
   required_providers {
     lxd = {
       source  = "terraform-lxd/lxd"
-      version = ">=2.5.0"
+      version = ">=3.0.0"
     }
     cloudinit = {
       source  = "hashicorp/cloudinit"
@@ -11,7 +11,7 @@ terraform {
   }
 }
 
-resource "lxd_volume" "osd" {
+resource "lxd_storage_volume" "osd" {
   count        = var.nb_osd
   name         = "${var.hostname}_osd${count.index}"
   pool         = "default"
@@ -54,12 +54,9 @@ resource "lxd_instance" "compute" {
   image = "ubuntu:noble"
   type  = "virtual-machine"
 
-  limits = {
-    cpu    = var.cores
-    memory = var.memory
-  }
-
   config = {
+    "limits.cpu"            = var.cores
+    "limits.memory"         = var.memory
     "user.access_interface" = "enp5s0"
     "user.user-data"        = data.cloudinit_config.cloudinit-compute.rendered
     "user.network-config" = var.use_proxy ? templatefile("${path.module}/templates/network-proxy.yaml", {
@@ -122,7 +119,7 @@ resource "lxd_instance" "compute" {
   }
 
   dynamic "device" {
-    for_each = lxd_volume.osd
+    for_each = lxd_storage_volume.osd
     content {
       name = device.value.name
 

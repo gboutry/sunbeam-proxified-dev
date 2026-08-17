@@ -2,7 +2,7 @@ terraform {
   required_providers {
     lxd = {
       source  = "terraform-lxd/lxd"
-      version = ">=2.5.0"
+      version = ">=3.0.0"
     }
     cloudinit = {
       source  = "hashicorp/cloudinit"
@@ -24,8 +24,10 @@ provider "null" {}
 provider "tls" {}
 
 provider "lxd" {
-  generate_client_certificates = true
-  accept_remote_certificate    = true
+  remote {
+    name    = "local"
+    address = "unix://"
+  }
 }
 
 resource "tls_private_key" "global" {
