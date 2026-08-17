@@ -2,7 +2,7 @@ terraform {
   required_providers {
     lxd = {
       source  = "terraform-lxd/lxd"
-      version = ">=2.5.0"
+      version = ">=3.0.0"
     }
     maas = {
       source  = "canonical/maas"
@@ -18,11 +18,10 @@ terraform {
 provider "tls" {}
 
 provider "lxd" {
-  generate_client_certificates = true
-  accept_remote_certificate    = true
+  default_remote = "lxd_remote"
+
   remote {
     name    = "lxd_remote"
-    default = true
     address = var.lxd_provider_address != "" ? var.lxd_provider_address : var.lxd_host_address
   }
 }

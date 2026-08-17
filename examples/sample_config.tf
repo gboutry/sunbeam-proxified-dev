@@ -5,7 +5,7 @@ terraform {
   required_providers {
     lxd = {
       source  = "terraform-lxd/lxd"
-      version = ">=2.5.0"
+      version = ">=3.0.0"
     }
     cloudinit = {
       source  = "hashicorp/cloudinit"
@@ -15,7 +15,10 @@ terraform {
 }
 
 provider "lxd" {
-  generate_client_certificates = true
+  remote {
+    name    = "local"
+    address = "unix://"
+  }
 }
 
 # Example configuration with 3 VMs

@@ -23,12 +23,9 @@ resource "lxd_instance" "proxy" {
   name  = "squid"
   image = "ubuntu:noble"
 
-  limits = {
-    cpu    = "2"
-    memory = "2GiB"
-  }
-
   config = {
+    "limits.cpu"            = "2"
+    "limits.memory"         = "2GiB"
     "user.access_interface" = "eth0"
     "user.user-data"        = data.cloudinit_config.cloudinit-proxy.rendered
     "user.network-config"   = file("${path.root}/templates/proxy/network.yaml")
